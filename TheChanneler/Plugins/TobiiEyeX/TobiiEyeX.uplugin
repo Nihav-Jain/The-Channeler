@@ -1,0 +1,20 @@
+{
+    "FileVersion" : 3,
+	"FriendlyName" : "Tobii EyeX Plugin",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Tobii Technology AB",
+	"CreatedByURL" : "https://github.com/TobiiTechnology/EyeXforUE4",
+	"EngineVersion" : 4.5,
+	"Description" : "A plugin to enable Tobii EyeX functionality in Unreal Engine 4",
+	"Category" : "Input.Controller",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "TobiiEyeX",
+			"Type" : "Runtime",
+			"LoadingPhase": "PreDefault"
+		}
+	]
+}
