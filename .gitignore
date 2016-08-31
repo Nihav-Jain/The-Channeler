@@ -61,3 +61,7 @@ Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 TheChanneler/Plugins/TobiiEyeX/Intermediate/
+TheChanneler/Intermediate/
+TheChanneler/Saved/
+TheChanneler/Build/Receipts/TheChannelerEditor-Win64-Development.target.xml
+TheChanneler/DerivedDataCache/
