@@ -179,21 +179,21 @@ void AChannelerCharacter::SetupPlayerInputComponent(class UInputComponent* Input
 	//InputComponent->BindAction("Jump", IE_Pressed, this, &AChannelerCharacter::Jump);
 	//InputComponent->BindAction("Jump", IE_Released, this, &AChannelerCharacter::StopJumping);
 
-	//const UInputSettings* inputSettings = GetDefault<UInputSettings>();
-	//if (inputSettings == nullptr)
-	//	return;
-	//
-	//int32 i;
-	//for (i = 0; i < inputSettings->ActionMappings.Num(); i++)
-	//{
-	//	const FString& actionName = inputSettings->ActionMappings[i].ActionName.ToString();
-	//	if (actionName.Find(SkipInputBindingPrefix) == 0)
-	//	{
-	//		mKeyMappings.Add(inputSettings->ActionMappings[i].ActionName, inputSettings->ActionMappings[i].Key);
-	//		InputComponent->BindAction(inputSettings->ActionMappings[i].ActionName, IE_Pressed, this, &AChannelerCharacter::SkipLevelAction);
-	//		UE_LOG(LogTemp, Warning, TEXT("Registered %s as a SkipLevelAction"), *actionName);
-	//	}
-	//}
+	const UInputSettings* inputSettings = GetDefault<UInputSettings>();
+	if (inputSettings == nullptr)
+		return;
+	
+	int32 i;
+	for (i = 0; i < inputSettings->ActionMappings.Num(); i++)
+	{
+		const FString& actionName = inputSettings->ActionMappings[i].ActionName.ToString();
+		if (actionName.Find(SkipInputBindingPrefix) == 0)
+		{
+			mKeyMappings.Add(inputSettings->ActionMappings[i].ActionName, inputSettings->ActionMappings[i].Key);
+			InputComponent->BindAction(inputSettings->ActionMappings[i].ActionName, IE_Pressed, this, &AChannelerCharacter::SkipLevelAction);
+			UE_LOG(LogTemp, Warning, TEXT("Registered %s as a SkipLevelAction"), *actionName);
+		}
+	}
 
 #endif
 }
