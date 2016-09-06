@@ -66,3 +66,8 @@ TheChanneler/Saved/
 TheChanneler/Build/Receipts/TheChannelerEditor-Win64-Development.target.xml
 TheChanneler/DerivedDataCache/
 TheChanneler/TheChanneler.VC.db
+
+# Dont ignore
+!TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/*
+!TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/x64/*
+!TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/x86/*
