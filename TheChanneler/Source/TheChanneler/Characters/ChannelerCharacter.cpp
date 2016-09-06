@@ -8,6 +8,7 @@
 #include "../TheChannelerHUD.h"
 #include "IEyeXPlugin.h"
 
+
 #if ENABLE_VISUAL_LOG
 void AChannelerCharacter::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 {
@@ -39,7 +40,9 @@ AChannelerCharacter::AChannelerCharacter() :
 	MinWinkDuration(0.25f), MaxWinkDuration(0.5f), bShouldEagleEyeBeDeactivated(false),
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
-	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel()
+	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
+	ExtendedFOVEnabled(true), ExtendedFOVMargin(100, 100, 100, 100), ExtendedFOVTurnRate(0.2f), GradientSpeed(false),
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -54,11 +57,21 @@ void AChannelerCharacter::BeginPlay()
 	DisableEagleEye();
 
 	UChannelerUtils::SetChanneler(this);
+
+	if (GEngine != nullptr)
+	{
+		mViewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
+		mViewportCenter = FIntPoint(mViewportSize.X / 2, mViewportSize.Y / 2);
+
+		UE_LOG(LogTemp, Warning, TEXT("Viewport size = %d %d"), mViewportSize.X, mViewportSize.Y);
+	}
 }
 
 void AChannelerCharacter::Tick(float deltaSeconds)
 {
 	Super::Tick(deltaSeconds);
+
+	ExtendedFOV();
 
 	// Get the duration that the eagle eye has been active
 	if (IsEagleEyeActive())
@@ -511,4 +524,28 @@ bool AChannelerCharacter::IsInPuzzle() const
 void AChannelerCharacter::SetIsInPuzzle(bool isInPuzzle)
 {
 	bIsInPuzzle = isInPuzzle;
+}
+
+void AChannelerCharacter::ExtendedFOV()
+{
+	if (!(bLookEnabled && ExtendedFOVEnabled))
+		return;
+
+	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
+	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
+	if (gazePoint.bHasValue)
+	{
+		if ((gazePoint.Value.X < ExtendedFOVMargin.X)
+			|| (gazePoint.Value.X > (mViewportSize.X - ExtendedFOVMargin.Z))
+			|| (gazePoint.Value.Y < ExtendedFOVMargin.Y)
+			|| (gazePoint.Value.Y > (mViewportSize.Y - ExtendedFOVMargin.W))
+			)
+		{
+			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
+			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
+			relativeGazePoint.Normalize();
+			AddControllerYawInput(relativeGazePoint.X);
+			AddControllerPitchInput(relativeGazePoint.Y);
+		}
+	}
 }

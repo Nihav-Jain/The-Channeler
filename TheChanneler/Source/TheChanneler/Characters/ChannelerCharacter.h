@@ -272,6 +272,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ChannelerEyeX | Blinking")
 	void BlinkWinkTick(float deltaSeconds);
 
+
+	/** Extended FOV */
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	bool ExtendedFOVEnabled;
+
+	/* Left, Top, Right, Bottom (in pixels) */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	FVector4 ExtendedFOVMargin;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	float ExtendedFOVTurnRate;
+
+	/* If true, rate of turn will interpolate between 0 to ExtendedFOVTurnRate from margin start to edge of screen */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "ExtendedFOV")
+	bool GradientSpeed;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;
@@ -318,4 +335,11 @@ private:
 	float Sensitivity;
 
 	TMap<FName, FKey> mKeyMappings;
+
+	/** Extended FOV */
+	
+	FIntPoint mViewportCenter;
+	FIntPoint mViewportSize;
+
+	void ExtendedFOV();
 };
