@@ -8,6 +8,14 @@
 #include "../TheChannelerHUD.h"
 #include "IEyeXPlugin.h"
 
+FExtendedFOVMargin::FExtendedFOVMargin() :
+	Left(0.2f), Right(0.2f), Top(0.2f), Bottom(0.2f)
+{}
+
+FExtendedFOVMargin::FExtendedFOVMargin(float left, float right, float top, float bottom) :
+	Left(left), Right(right), Top(top), Bottom(bottom)
+{}
+
 #if ENABLE_VISUAL_LOG
 void AChannelerCharacter::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 {
@@ -39,7 +47,9 @@ AChannelerCharacter::AChannelerCharacter() :
 	MinWinkDuration(0.25f), MaxWinkDuration(0.5f), bShouldEagleEyeBeDeactivated(false),
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
-	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel()
+	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -54,11 +64,28 @@ void AChannelerCharacter::BeginPlay()
 	DisableEagleEye();
 
 	UChannelerUtils::SetChanneler(this);
+
+	if (GEngine != nullptr)
+	{
+		mViewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
+		mViewportCenter = FIntPoint(mViewportSize.X / 2, mViewportSize.Y / 2);
+
+		UE_LOG(LogTemp, Warning, TEXT("Viewport size = %d %d"), mViewportSize.X, mViewportSize.Y);
+	}
+
+	mFOVMargin = FVector4(
+		mViewportSize.X * ExtendedFOVMargin.Left, 
+		mViewportSize.X * ExtendedFOVMargin.Right, 
+		mViewportSize.Y * ExtendedFOVMargin.Top, 
+		mViewportSize.Y * ExtendedFOVMargin.Bottom
+	);
 }
 
 void AChannelerCharacter::Tick(float deltaSeconds)
 {
 	Super::Tick(deltaSeconds);
+
+	ExtendedFOV();
 
 	// Get the duration that the eagle eye has been active
 	if (IsEagleEyeActive())
@@ -511,4 +538,38 @@ bool AChannelerCharacter::IsInPuzzle() const
 void AChannelerCharacter::SetIsInPuzzle(bool isInPuzzle)
 {
 	bIsInPuzzle = isInPuzzle;
+}
+
+void AChannelerCharacter::ExtendedFOV()
+{
+	if (!(bLookEnabled && ExtendedFOVEnabled))
+		return;
+
+	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
+	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
+	if (gazePoint.bHasValue)
+	{
+		if ((gazePoint.Value.X < mFOVMargin.X)
+			|| (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
+			|| (gazePoint.Value.Y < mFOVMargin.Y)
+			|| (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
+			)
+		{
+			// Check if gaze point is outside the screen.
+			if ((gazePoint.Value.X < 0)
+				|| (gazePoint.Value.X > mViewportSize.X)
+				|| (gazePoint.Value.Y < 0)
+				|| (gazePoint.Value.Y > mViewportSize.Y)
+				)
+			{
+				return;
+			}
+
+			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
+			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
+			relativeGazePoint.Normalize();
+			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate);
+			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate);
+		}
+	}
 }

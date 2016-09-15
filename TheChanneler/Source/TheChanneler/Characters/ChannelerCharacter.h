@@ -33,6 +33,31 @@ enum class EEyeToDetect : uint8
 	EYE_MAX
 };
 
+USTRUCT(BlueprintType)
+struct FExtendedFOVMargin
+{
+	GENERATED_BODY()
+public:
+	FExtendedFOVMargin();
+	FExtendedFOVMargin(float left, float right, float top, float bottom);
+
+	/* Fraction of screen width from the left for extended FOV (0.0 <= left < 0.5) */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = 0.0f, ClampMax = 0.49f))
+	float Left;
+
+	/* Fraction of screen width from the right for extended FOV (0.0 <= right < 0.5) */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = 0.0f, ClampMax = 0.49f))
+	float Right;
+
+	/* Fraction of screen height from the top for extended FOV (0.0 <= top < 0.5) */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = 0.0f, ClampMax = 0.49f))
+	float Top;
+
+	/* Fraction of screen height from the bottom for extended FOV (0.0 <= bottom < 0.5) */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = 0.0f, ClampMax = 0.49f))
+	float Bottom;
+};
+
 /**
  *	Custom First-Person Character for TheChanneler
  */
@@ -272,6 +297,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ChannelerEyeX | Blinking")
 	void BlinkWinkTick(float deltaSeconds);
 
+
+	/** Extended FOV */
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	bool ExtendedFOVEnabled;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Extended FOV")
+	FExtendedFOVMargin ExtendedFOVMargin;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	float ExtendedFOVTurnRate;
+
+	/* If true, rate of turn will interpolate between 0 to ExtendedFOVTurnRate from margin start to edge of screen */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	bool GradientSpeed;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;
@@ -318,4 +359,12 @@ private:
 	float Sensitivity;
 
 	TMap<FName, FKey> mKeyMappings;
+
+	/** Extended FOV */
+	
+	FIntPoint mViewportCenter;
+	FIntPoint mViewportSize;
+	FVector4 mFOVMargin;
+
+	void ExtendedFOV();
 };
