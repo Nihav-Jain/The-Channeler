@@ -8,6 +8,13 @@
 #include "../TheChannelerHUD.h"
 #include "IEyeXPlugin.h"
 
+FExtendedFOVMargin::FExtendedFOVMargin() :
+	Left(0.2f), Right(0.2f), Top(0.2f), Bottom(0.2f)
+{}
+
+FExtendedFOVMargin::FExtendedFOVMargin(float left, float right, float top, float bottom) :
+	Left(left), Right(right), Top(top), Bottom(bottom)
+{}
 
 #if ENABLE_VISUAL_LOG
 void AChannelerCharacter::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
@@ -41,7 +48,7 @@ AChannelerCharacter::AChannelerCharacter() :
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVEnabled(true), ExtendedFOVMargin(100, 100, 100, 100), ExtendedFOVTurnRate(0.2f), GradientSpeed(false),
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
 	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080)
 {}
 
@@ -65,6 +72,13 @@ void AChannelerCharacter::BeginPlay()
 
 		UE_LOG(LogTemp, Warning, TEXT("Viewport size = %d %d"), mViewportSize.X, mViewportSize.Y);
 	}
+
+	mFOVMargin = FVector4(
+		mViewportSize.X * ExtendedFOVMargin.Left, 
+		mViewportSize.X * ExtendedFOVMargin.Right, 
+		mViewportSize.Y * ExtendedFOVMargin.Top, 
+		mViewportSize.Y * ExtendedFOVMargin.Bottom
+	);
 }
 
 void AChannelerCharacter::Tick(float deltaSeconds)
@@ -535,17 +549,27 @@ void AChannelerCharacter::ExtendedFOV()
 	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
 	if (gazePoint.bHasValue)
 	{
-		if ((gazePoint.Value.X < ExtendedFOVMargin.X)
-			|| (gazePoint.Value.X > (mViewportSize.X - ExtendedFOVMargin.Z))
-			|| (gazePoint.Value.Y < ExtendedFOVMargin.Y)
-			|| (gazePoint.Value.Y > (mViewportSize.Y - ExtendedFOVMargin.W))
+		if ((gazePoint.Value.X < mFOVMargin.X)
+			|| (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
+			|| (gazePoint.Value.Y < mFOVMargin.Y)
+			|| (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
 			)
 		{
+			// Check if gaze point is outside the screen.
+			if ((gazePoint.Value.X < 0)
+				|| (gazePoint.Value.X > mViewportSize.X)
+				|| (gazePoint.Value.Y < 0)
+				|| (gazePoint.Value.Y > mViewportSize.Y)
+				)
+			{
+				return;
+			}
+
 			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
-			AddControllerYawInput(relativeGazePoint.X);
-			AddControllerPitchInput(relativeGazePoint.Y);
+			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate);
+			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate);
 		}
 	}
 }
