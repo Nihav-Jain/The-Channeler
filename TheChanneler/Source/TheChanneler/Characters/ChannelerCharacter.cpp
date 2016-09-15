@@ -49,7 +49,8 @@ AChannelerCharacter::AChannelerCharacter() :
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080)
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080),
+	bSimulateEyeX(true)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -400,23 +401,31 @@ void AChannelerCharacter::DeactivateLeftEagleEye()
 
 void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 {
-	// check for user presence; if it has changed since last frame, trigger appropriate event
 	TEnumAsByte<EEyeXUserPresence::Type> currentUserPresence = mEyeX->GetUserPresence();
-	if (currentUserPresence != UserPresence)
+
+	if (!bSimulateEyeX)
 	{
-		UserPresence = currentUserPresence;
-		switch (currentUserPresence)
+		// check for user presence; if it has changed since last frame, trigger appropriate event
+		if (currentUserPresence != UserPresence)
 		{
-		case EEyeXUserPresence::Unknown:		// intentional fall through
-		case EEyeXUserPresence::NotPresent:
-			if (LostUserPresenceEvent.IsBound())
-				LostUserPresenceEvent.Broadcast();
-			break;
-		case EEyeXUserPresence::Present:
-			if (GainedUserPresenceEvent.IsBound())
-				GainedUserPresenceEvent.Broadcast();
-			break;
+			UserPresence = currentUserPresence;
+			switch (currentUserPresence)
+			{
+			case EEyeXUserPresence::Unknown:		// intentional fall through
+			case EEyeXUserPresence::NotPresent:
+				if (LostUserPresenceEvent.IsBound())
+					LostUserPresenceEvent.Broadcast();
+				break;
+			case EEyeXUserPresence::Present:
+				if (GainedUserPresenceEvent.IsBound())
+					GainedUserPresenceEvent.Broadcast();
+				break;
+			}
 		}
+	}
+	else
+	{
+		currentUserPresence = EEyeXUserPresence::Present;
 	}
 
 	bDidBlink = false;
@@ -425,14 +434,17 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 	{
 		FEyeXEyePosition currentEyePosition = mEyeX->GetEyePosition();
 
-		bIsLeftEyeClosed = !currentEyePosition.bIsLeftEyeValid;
-		bIsRightEyeClosed = !currentEyePosition.bIsRightEyeValid;
+		if (!bSimulateEyeX)
+		{
+			bIsLeftEyeClosed = !currentEyePosition.bIsLeftEyeValid;
+			bIsRightEyeClosed = !currentEyePosition.bIsRightEyeValid;
+		}
 
 		if (bMarkedForReset)
 			mBlinkErrorTimer += deltaSeconds;
 
 		// both eyes are open
-		if (currentEyePosition.bIsLeftEyeValid && currentEyePosition.bIsRightEyeValid)
+		if (!(bIsLeftEyeClosed || bIsRightEyeClosed))
 		{
 			/** Wink **/
 			// check for left eye wink
@@ -444,11 +456,11 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 						LeftEyeClosed.Broadcast();
 					mLeftEyeClosedDuration = 0;		// should ideally be mEyeClosedDuration = mEyeClosedDuration % MinEyeClosedDuration; but modulus for floats is not supported
 					mLastTriggeredEyeEvent = EEyeToDetect::EYE_LEFT;
-					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
+					UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
 				}
 				else
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
+					UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
 				}
 			}
 			// check for right eye wink
@@ -460,11 +472,11 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 						RightEyeClosed.Broadcast();
 					mRightEyeClosedDuration = 0;
 					mLastTriggeredEyeEvent = EEyeToDetect::EYE_RIGHT;
-					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
+					UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
 				}
 				else
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
+					UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
 				}
 			}
 
@@ -489,7 +501,7 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 					//mBlinkTimer += deltaSeconds; // debatable
 					if (mBlinkTimer >= MinBlinkDuration && mBlinkTimer <= MaxBlinkDuration)
 					{
-						//UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
+						UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
 						bDidBlink = true;
 						mBlinkCount++;
 						if (UserBlinked.IsBound())
@@ -500,7 +512,7 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 			}
 		}
 		// left eye is closed, right eye is open
-		else if (!currentEyePosition.bIsLeftEyeValid && currentEyePosition.bIsRightEyeValid)
+		else if (bIsLeftEyeClosed && !bIsRightEyeClosed)
 		{
 			mLeftEyeClosedDuration += deltaSeconds;
 			mRightEyeClosedDuration = 0;
@@ -512,7 +524,7 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 			}
 		}
 		// left eye is open, right eye is closed
-		else if (currentEyePosition.bIsLeftEyeValid && !currentEyePosition.bIsRightEyeValid)
+		else if (!bIsLeftEyeClosed && bIsRightEyeClosed)
 		{
 			mLeftEyeClosedDuration = 0;
 			mRightEyeClosedDuration += deltaSeconds;
@@ -549,7 +561,7 @@ void AChannelerCharacter::SetIsInPuzzle(bool isInPuzzle)
 
 void AChannelerCharacter::ExtendedFOV()
 {
-	if (!(bLookEnabled && ExtendedFOVEnabled))
+	if (!(bLookEnabled && ExtendedFOVEnabled && !bSimulateEyeX))
 		return;
 
 	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
@@ -584,19 +596,27 @@ void AChannelerCharacter::ExtendedFOV()
 void AChannelerCharacter::SimulateLeftEyeClosed()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Left eye closed"));
+	if (bSimulateEyeX)
+		bIsLeftEyeClosed = true;
 }
 
 void AChannelerCharacter::SimulateRightEyeClosed()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Right eye closed"));
+	if (bSimulateEyeX)
+		bIsRightEyeClosed = true;
 }
 
 void AChannelerCharacter::SimulateLeftEyeOpen()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left eye closed"));
+	UE_LOG(LogTemp, Warning, TEXT("Left eye open"));
+	if (bSimulateEyeX)
+		bIsLeftEyeClosed = false;
 }
 
 void AChannelerCharacter::SimulateRightEyeOpen()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Right eye closed"));
+	UE_LOG(LogTemp, Warning, TEXT("Right eye open"));
+	if (bSimulateEyeX)
+		bIsRightEyeClosed = false;
 }

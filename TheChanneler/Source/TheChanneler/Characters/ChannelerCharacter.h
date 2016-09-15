@@ -374,4 +374,6 @@ private:
 	void SimulateRightEyeClosed();
 	void SimulateLeftEyeOpen();
 	void SimulateRightEyeOpen();
+
+	bool bSimulateEyeX;
 };
