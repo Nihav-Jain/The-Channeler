@@ -200,6 +200,13 @@ void AChannelerCharacter::SetupPlayerInputComponent(class UInputComponent* Input
 	InputComponent->BindAxis("LookUp", this, &AChannelerCharacter::AddControllerPitchInput);
 	InputComponent->BindAxis("LookUpRate", this, &AChannelerCharacter::LookUpAtRate);
 
+	/* Simulation */
+	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Pressed, this, &AChannelerCharacter::SimulateLeftEyeClosed);
+	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Pressed, this, &AChannelerCharacter::SimulateRightEyeClosed);
+
+	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Released, this, &AChannelerCharacter::SimulateLeftEyeOpen);
+	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Released, this, &AChannelerCharacter::SimulateRightEyeOpen);
+
 #if CHANNELER_SHIP_TEST
 
 	// Bind jump events
@@ -572,4 +579,24 @@ void AChannelerCharacter::ExtendedFOV()
 			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate);
 		}
 	}
+}
+
+void AChannelerCharacter::SimulateLeftEyeClosed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Left eye closed"));
+}
+
+void AChannelerCharacter::SimulateRightEyeClosed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Right eye closed"));
+}
+
+void AChannelerCharacter::SimulateLeftEyeOpen()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Left eye closed"));
+}
+
+void AChannelerCharacter::SimulateRightEyeOpen()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Right eye closed"));
 }
