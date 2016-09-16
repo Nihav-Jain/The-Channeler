@@ -75,8 +75,8 @@ void AChannelerCharacter::BeginPlay()
 
 	mFOVMargin = FVector4(
 		mViewportSize.X * ExtendedFOVMargin.Left, 
-		mViewportSize.X * ExtendedFOVMargin.Right, 
 		mViewportSize.Y * ExtendedFOVMargin.Top, 
+		mViewportSize.X * ExtendedFOVMargin.Right,
 		mViewportSize.Y * ExtendedFOVMargin.Bottom
 	);
 }
@@ -568,8 +568,22 @@ void AChannelerCharacter::ExtendedFOV()
 			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
-			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate);
-			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate);
+
+			FVector2D speedInterpolation = FVector2D(1.0f, 1.0f);
+			if (GradientSpeed)
+			{
+				if (gazePoint.Value.X < mFOVMargin.X)
+					speedInterpolation.X = (mFOVMargin.X - gazePoint.Value.X) / mFOVMargin.X;
+				else if (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
+					speedInterpolation.X = (mFOVMargin.Z - (mViewportSize.X - gazePoint.Value.X)) / mFOVMargin.Z;
+				if (gazePoint.Value.Y < mFOVMargin.Y)
+					speedInterpolation.Y = (mFOVMargin.Y - gazePoint.Value.Y) / mFOVMargin.Y;
+				else if (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
+					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
+			}
+
+			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X);
+			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
 		}
 	}
 }
