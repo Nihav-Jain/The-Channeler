@@ -6,6 +6,7 @@
 #include "../Utils/ChannelerUtils.h"
 #include "../Storytelling/StoryManager.h"
 #include "../TheChannelerHUD.h"
+#include "../TheChannelerGameMode.h"
 #include "IEyeXPlugin.h"
 
 FExtendedFOVMargin::FExtendedFOVMargin() :
@@ -50,7 +51,7 @@ AChannelerCharacter::AChannelerCharacter() :
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
 	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080),
-	bSimulateEyeX(true)
+	mGameMode(nullptr)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -80,6 +81,20 @@ void AChannelerCharacter::BeginPlay()
 		mViewportSize.Y * ExtendedFOVMargin.Top, 
 		mViewportSize.Y * ExtendedFOVMargin.Bottom
 	);
+
+	AGameMode* gameMode = UGameplayStatics::GetGameMode(this);
+	if (gameMode == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("game mode is null"));
+	}
+	else
+	{
+		mGameMode = Cast<ATheChannelerGameMode>(gameMode);
+		if (mGameMode == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("channeler game mode is null"));
+		}
+	}
 }
 
 void AChannelerCharacter::Tick(float deltaSeconds)
@@ -403,7 +418,8 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 {
 	TEnumAsByte<EEyeXUserPresence::Type> currentUserPresence = mEyeX->GetUserPresence();
 
-	if (!bSimulateEyeX)
+	bool simulateEyeX = IsEyeXSimulating();
+	if (!simulateEyeX)
 	{
 		// check for user presence; if it has changed since last frame, trigger appropriate event
 		if (currentUserPresence != UserPresence)
@@ -434,7 +450,7 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 	{
 		FEyeXEyePosition currentEyePosition = mEyeX->GetEyePosition();
 
-		if (!bSimulateEyeX)
+		if (!simulateEyeX)
 		{
 			bIsLeftEyeClosed = !currentEyePosition.bIsLeftEyeValid;
 			bIsRightEyeClosed = !currentEyePosition.bIsRightEyeValid;
@@ -561,7 +577,13 @@ void AChannelerCharacter::SetIsInPuzzle(bool isInPuzzle)
 
 void AChannelerCharacter::ExtendedFOV()
 {
-	if (!(bLookEnabled && ExtendedFOVEnabled && !bSimulateEyeX))
+	// Somewhere the Tobii mouse emulation is being set. 
+	// Until that is found and shut down, this check will prevent extended fov from working with mouse emulation mode.
+	EEyeXDeviceStatus::Type deviceStatus = mEyeX->GetEyeTrackingDeviceStatus();
+	if (deviceStatus != EEyeXDeviceStatus::Tracking)
+		return;
+
+	if (!(bLookEnabled && ExtendedFOVEnabled && !IsEyeXSimulating()))
 		return;
 
 	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
@@ -584,7 +606,7 @@ void AChannelerCharacter::ExtendedFOV()
 				return;
 			}
 
-			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
+			UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
 			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate);
@@ -595,28 +617,29 @@ void AChannelerCharacter::ExtendedFOV()
 
 void AChannelerCharacter::SimulateLeftEyeClosed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left eye closed"));
-	if (bSimulateEyeX)
+	if (IsEyeXSimulating())
 		bIsLeftEyeClosed = true;
 }
 
 void AChannelerCharacter::SimulateRightEyeClosed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Right eye closed"));
-	if (bSimulateEyeX)
+	if (IsEyeXSimulating())
 		bIsRightEyeClosed = true;
 }
 
 void AChannelerCharacter::SimulateLeftEyeOpen()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Left eye open"));
-	if (bSimulateEyeX)
+	if (IsEyeXSimulating())
 		bIsLeftEyeClosed = false;
 }
 
 void AChannelerCharacter::SimulateRightEyeOpen()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Right eye open"));
-	if (bSimulateEyeX)
+	if (IsEyeXSimulating())
 		bIsRightEyeClosed = false;
+}
+
+bool AChannelerCharacter::IsEyeXSimulating() const
+{
+	return (mGameMode != nullptr) ? mGameMode->IsEyeXSimulating() : false;
 }

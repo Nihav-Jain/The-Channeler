@@ -375,5 +375,7 @@ private:
 	void SimulateLeftEyeOpen();
 	void SimulateRightEyeOpen();
 
-	bool bSimulateEyeX;
+	bool IsEyeXSimulating() const;
+
+	class ATheChannelerGameMode* mGameMode;
 };
