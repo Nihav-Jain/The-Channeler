@@ -49,7 +49,7 @@ AChannelerCharacter::AChannelerCharacter() :
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080)
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -252,25 +252,37 @@ void AChannelerCharacter::MoveRight(float Val)
 void AChannelerCharacter::AddControllerYawInput(float Val)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Val != 0.0f);
 		Super::AddControllerYawInput(Val * Sensitivity);
+	}
 }
 
 void AChannelerCharacter::TurnAtRate(float Rate)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Rate != 0.0f);
 		Super::TurnAtRate(Rate);
+	}
 }
 
 void AChannelerCharacter::AddControllerPitchInput(float Val)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Val != 0.0f);
 		Super::AddControllerPitchInput(Val * Sensitivity);
+	}
 }
 
 void AChannelerCharacter::LookUpAtRate(float Rate)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Rate != 0.0f);
 		Super::LookUpAtRate(Rate);
+	}
 }
 
 void AChannelerCharacter::SkipLevelAction()
@@ -545,6 +557,9 @@ void AChannelerCharacter::ExtendedFOV()
 	if (!(bLookEnabled && ExtendedFOVEnabled))
 		return;
 
+	if (!MouseVsFov && mMouseWasMoved)
+		return;
+
 	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
 	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
 	if (gazePoint.bHasValue)
@@ -586,4 +601,6 @@ void AChannelerCharacter::ExtendedFOV()
 			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
 		}
 	}
+
+	mMouseWasMoved = false;
 }

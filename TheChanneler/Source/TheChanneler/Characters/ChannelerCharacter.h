@@ -313,6 +313,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
 	bool GradientSpeed;
 
+	/* If true, both mouse and fov inputs wil be considered in the same frame */
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
+	bool MouseVsFov;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;
@@ -365,6 +369,7 @@ private:
 	FIntPoint mViewportCenter;
 	FIntPoint mViewportSize;
 	FVector4 mFOVMargin;
+	bool mMouseWasMoved;
 
 	void ExtendedFOV();
 };
