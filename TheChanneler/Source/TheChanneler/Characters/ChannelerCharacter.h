@@ -317,6 +317,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
 	bool MouseVsFov;
 
+	UPROPERTY(EditAnywhere, Category = "Extended FOV")
+	bool Easing;
+
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 0.0f, ClampMax = 1.0f))
+	float EasingResponsiveness;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;

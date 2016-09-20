@@ -49,7 +49,8 @@ AChannelerCharacter::AChannelerCharacter() :
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false)
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), 
+	Easing(false), EasingResponsiveness(0.25f)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -597,8 +598,16 @@ void AChannelerCharacter::ExtendedFOV()
 					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
 			}
 
-			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X);
-			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
+			FVector2D fovSpeed = FVector2D(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X,
+										relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
+
+			APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
+			
+			float deltaYaw = fovSpeed.X * playerController->InputYawScale;
+			float deltaPitch = fovSpeed.Y * playerController->InputPitchScale;
+
+			AddControllerYawInput(fovSpeed.X);
+			AddControllerPitchInput(fovSpeed.Y);
 		}
 	}
 
