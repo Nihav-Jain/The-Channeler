@@ -367,4 +367,15 @@ private:
 	FVector4 mFOVMargin;
 
 	void ExtendedFOV();
+
+	/** EyeX Simulation */
+	
+	void SimulateLeftEyeClosed();
+	void SimulateRightEyeClosed();
+	void SimulateLeftEyeOpen();
+	void SimulateRightEyeOpen();
+
+	bool IsEyeXSimulating() const;
+
+	class ATheChannelerGameMode* mGameMode;
 };

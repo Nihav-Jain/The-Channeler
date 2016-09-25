@@ -19,6 +19,8 @@ class THECHANNELER_API ATheChannelerGameMode : public AGameMode
 	GENERATED_BODY()
 
 public:
+	ATheChannelerGameMode();
+
 	/**
 	* BeginPlay - Called when the game starts.
 	*/
@@ -122,6 +124,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Channeler|GameMode|File")
 		void ReplaceStringAtLineNumber(FString  InputData, FString StringToReplace, FString& OutData, int32 LineNumber);
 
+	UFUNCTION(BlueprintCallable, Category="EyeX Simulation")
+	bool IsEyeXSimulating() const;
 
 protected:
 	/** The widget class we will use as our menu when the game starts. */
@@ -134,6 +138,9 @@ protected:
 
 	/** The content of the file read will be stored here. */
 	FString* FileContent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EyeX Simulation")
+	bool bSimulateEyeX;
 
 private:
 	UEyeXPluginEx* EyeXEx;
