@@ -11,6 +11,17 @@ ATheChannelerGameMode::ATheChannelerGameMode() :
 void ATheChannelerGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	IEyeXPlugin& eyeX = IEyeXPlugin::Get();
+	if (bSimulateEyeX)
+	{
+		eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
+	}
+	else
+	{
+		eyeX.SetEmulationMode(EEyeXEmulationMode::Disabled);
+	}
+
 	ChangeMenuWidget(StartingWidgetClass);
 	EyeXEx = nullptr;
 }
