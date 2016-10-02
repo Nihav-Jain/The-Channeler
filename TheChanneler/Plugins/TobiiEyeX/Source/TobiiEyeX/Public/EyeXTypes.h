@@ -257,6 +257,16 @@ namespace EEyeXEmulationMode
 	};
 }
 
+UENUM(BlueprintType)
+namespace EEyeXEmulationPoint
+{
+	enum Type
+	{
+		MousePosition   UMETA(DisplayName = "Mouse Position"),
+		ScreenCenter    UMETA(DisplayName = "Screen Center")
+	};
+}
+
 struct FMyInteractor
 {
 	int32 X;

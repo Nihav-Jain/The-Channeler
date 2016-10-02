@@ -105,12 +105,15 @@ void AEyeXPlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	if (MinUpdateDistance > 0 &&
-		LastUsedGazePoint.bHasValue &&
-		DistanceInMM(GazePoint.Value, LastUsedGazePoint.Value, 1 / GetApproximatePixelsPerMillimeter()) < MinUpdateDistance)
+	if (!(EyeX->GetEmulationMode() == EEyeXEmulationMode::Enabled && EyeX->GetEmulationPointType() == EEyeXEmulationPoint::ScreenCenter))
 	{
-		// Too close to previous point: ignore.
-		return;
+		if (MinUpdateDistance > 0 &&
+			LastUsedGazePoint.bHasValue &&
+			DistanceInMM(GazePoint.Value, LastUsedGazePoint.Value, 1 / GetApproximatePixelsPerMillimeter()) < MinUpdateDistance)
+		{
+			// Too close to previous point: ignore.
+			return;
+		}
 	}
 
 	LastUsedGazePoint = GazePoint;
