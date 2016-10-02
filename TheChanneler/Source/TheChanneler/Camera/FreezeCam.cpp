@@ -116,6 +116,11 @@ void AFreezeCam::TransferControlToPlayer()
 	{
 		UE_LOG(LogTemp, Error, TEXT("AFreezeCam::InitializerOnBeginOverlap() -> Player controller pawn is not a AChannelerCharacter"));
 	}
+
+	if (IEyeXPlugin::IsAvailable())
+	{
+		IEyeXPlugin::Get().SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
+	}
 }
 
 void AFreezeCam::ActivateFreezeCam()
@@ -149,6 +154,11 @@ void AFreezeCam::StartPuzzle()
 		fpCharacter->EnableMovement();
 		fpCharacter->EnableLook();
 		fpCharacter->SetIsInPuzzle(true);
+	}
+	
+	if (IEyeXPlugin::IsAvailable())
+	{
+		IEyeXPlugin::Get().SetEmulationPointType(EEyeXEmulationPoint::MousePosition);
 	}
 
 	ATheChannelerHUD* ChannelerHud = Cast<ATheChannelerHUD>(GetWorld()->GetFirstPlayerController()->GetHUD());

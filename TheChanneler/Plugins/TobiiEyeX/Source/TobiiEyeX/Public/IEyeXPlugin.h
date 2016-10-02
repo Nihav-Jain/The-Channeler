@@ -151,4 +151,6 @@ public:
 	 */
 	virtual void SetEmulationMode(EEyeXEmulationMode::Type Mode) = 0;
 
+	virtual EEyeXEmulationPoint::Type GetEmulationPointType() const = 0;
+	virtual void SetEmulationPointType(EEyeXEmulationPoint::Type PointType) = 0;
 };

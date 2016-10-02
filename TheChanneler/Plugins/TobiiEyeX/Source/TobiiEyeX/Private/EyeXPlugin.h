@@ -37,6 +37,8 @@ public:
 	virtual EEyeXUserPresence::Type GetUserPresence() override;
 	virtual EEyeXEmulationMode::Type GetEmulationMode() override;
 	virtual void SetEmulationMode(EEyeXEmulationMode::Type Mode) override;
+	virtual EEyeXEmulationPoint::Type GetEmulationPointType() const override;
+	virtual void SetEmulationPointType(EEyeXEmulationPoint::Type PointType) override;
 
 private:
 
@@ -65,4 +67,5 @@ private:
 	IEyeXStateAccessor *EyeTrackingDeviceStatusAccessor;
 	IEyeXStateAccessor *UserPresenceAccessor;
 	EEyeXEmulationMode::Type EmulationMode;
+	EEyeXEmulationPoint::Type EmulationPoint;
 };

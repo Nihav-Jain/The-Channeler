@@ -16,6 +16,7 @@ void ATheChannelerGameMode::BeginPlay()
 	if (bSimulateEyeX)
 	{
 		eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
+		eyeX.SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
 	}
 	else
 	{
