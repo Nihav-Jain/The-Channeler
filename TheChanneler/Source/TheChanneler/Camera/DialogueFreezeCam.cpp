@@ -161,12 +161,22 @@ void ADialogueFreezeCam::StartPuzzle()
 			ChannelerHud->TurnOnGaze();
 		}
 
+		if (IEyeXPlugin::IsAvailable())
+		{
+			IEyeXPlugin::Get().SetEmulationPointType(EEyeXEmulationPoint::MousePosition);
+		}
+
 		TargetPuzzle->StartPuzzle();
 	}
 }
 
 void ADialogueFreezeCam::TransferControlToPlayer()
 {
+	if (IEyeXPlugin::IsAvailable())
+	{
+		IEyeXPlugin::Get().SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
+	}
+
 	if (ExitDirectlyToPlayer)
 	{
 		EndInteraction();

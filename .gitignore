@@ -70,3 +70,4 @@ TheChanneler/TheChanneler.VC.db
 !TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/*
 !TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/x64/*
 !TheChanneler/Plugins/TobiiEyeX/ThirdParty/EyeX/lib/x86/*
+*.pdb
