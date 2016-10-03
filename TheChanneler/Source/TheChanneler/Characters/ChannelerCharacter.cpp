@@ -50,8 +50,9 @@ AChannelerCharacter::AChannelerCharacter() :
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080),
-	mGameMode(nullptr)
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), 
+	mGameMode(nullptr),
+	Easing(false), EasingResponsiveness(0.25f)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -77,8 +78,8 @@ void AChannelerCharacter::BeginPlay()
 
 	mFOVMargin = FVector4(
 		mViewportSize.X * ExtendedFOVMargin.Left, 
-		mViewportSize.X * ExtendedFOVMargin.Right, 
 		mViewportSize.Y * ExtendedFOVMargin.Top, 
+		mViewportSize.X * ExtendedFOVMargin.Right,
 		mViewportSize.Y * ExtendedFOVMargin.Bottom
 	);
 
@@ -275,25 +276,37 @@ void AChannelerCharacter::MoveRight(float Val)
 void AChannelerCharacter::AddControllerYawInput(float Val)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Val != 0.0f);
 		Super::AddControllerYawInput(Val * Sensitivity);
+	}
 }
 
 void AChannelerCharacter::TurnAtRate(float Rate)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Rate != 0.0f);
 		Super::TurnAtRate(Rate);
+	}
 }
 
 void AChannelerCharacter::AddControllerPitchInput(float Val)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Val != 0.0f);
 		Super::AddControllerPitchInput(Val * Sensitivity);
+	}
 }
 
 void AChannelerCharacter::LookUpAtRate(float Rate)
 {
 	if (bLookEnabled)
+	{
+		mMouseWasMoved = (Rate != 0.0f);
 		Super::LookUpAtRate(Rate);
+	}
 }
 
 void AChannelerCharacter::SkipLevelAction()
@@ -586,6 +599,9 @@ void AChannelerCharacter::ExtendedFOV()
 	if (!(bLookEnabled && ExtendedFOVEnabled && !IsEyeXSimulating()))
 		return;
 
+	if (!MouseVsFov && mMouseWasMoved)
+		return;
+
 	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
 	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
 	if (gazePoint.bHasValue)
@@ -609,10 +625,34 @@ void AChannelerCharacter::ExtendedFOV()
 			UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
-			AddControllerYawInput(relativeGazePoint.X * ExtendedFOVTurnRate);
-			AddControllerPitchInput(relativeGazePoint.Y * ExtendedFOVTurnRate);
+
+			FVector2D speedInterpolation = FVector2D(1.0f, 1.0f);
+			if (GradientSpeed)
+			{
+				if (gazePoint.Value.X < mFOVMargin.X)
+					speedInterpolation.X = (mFOVMargin.X - gazePoint.Value.X) / mFOVMargin.X;
+				else if (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
+					speedInterpolation.X = (mFOVMargin.Z - (mViewportSize.X - gazePoint.Value.X)) / mFOVMargin.Z;
+				if (gazePoint.Value.Y < mFOVMargin.Y)
+					speedInterpolation.Y = (mFOVMargin.Y - gazePoint.Value.Y) / mFOVMargin.Y;
+				else if (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
+					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
+			}
+
+			FVector2D fovSpeed = FVector2D(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X,
+										relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
+
+			APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
+			
+			float deltaYaw = fovSpeed.X * playerController->InputYawScale;
+			float deltaPitch = fovSpeed.Y * playerController->InputPitchScale;
+
+			AddControllerYawInput(fovSpeed.X);
+			AddControllerPitchInput(fovSpeed.Y);
 		}
 	}
+
+	mMouseWasMoved = false;
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()

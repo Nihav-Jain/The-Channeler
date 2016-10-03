@@ -104,23 +104,26 @@ void UGameInstanceBase::LoadAudioChannels()
 		AActor* actor = *ActorItr;
 		if (actor == nullptr)
 			continue;
-		UActorComponent* component = actor->GetComponentByClass(audioComponentSubclass);
-		if (component != nullptr)
-		{
-			UChannelerAudioComponent* audioComponent = Cast<UChannelerAudioComponent>(component);
-			if (audioComponent != nullptr)
+		TArray<UActorComponent*> components = actor->GetComponentsByClass(audioComponentSubclass);
+		for (int32 index = 0; index < components.Num(); index++)
+		{ 
+			if (components[index] != nullptr)
 			{
-				switch (audioComponent->AudioChannel)
+				UChannelerAudioComponent* audioComponent = Cast<UChannelerAudioComponent>(components[index]);
+				if (audioComponent != nullptr)
 				{
-				case UChannelerAudioComponent::Channel::Music:
-					ChannelerMusicAudioComponentArray.Add(audioComponent);
-					break;
-				case UChannelerAudioComponent::Channel::SFX:
-					ChannelerSFXAudioComponentArray.Add(audioComponent);
-					break;
-				case UChannelerAudioComponent::Channel::Voice:
-					ChannelerVoiceAudioComponentArray.Add(audioComponent);
-					break;
+					switch (audioComponent->AudioChannel)
+					{
+					case UChannelerAudioComponent::Channel::Music:
+						ChannelerMusicAudioComponentArray.Add(audioComponent);
+						break;
+					case UChannelerAudioComponent::Channel::SFX:
+						ChannelerSFXAudioComponentArray.Add(audioComponent);
+						break;
+					case UChannelerAudioComponent::Channel::Voice:
+						ChannelerVoiceAudioComponentArray.Add(audioComponent);
+						break;
+					}
 				}
 			}
 		}
