@@ -7,6 +7,7 @@
 #include "../Storytelling/StoryManager.h"
 #include "../TheChannelerHUD.h"
 #include "../TheChannelerGameMode.h"
+#include "GhostCameraActor.h"
 #include "IEyeXPlugin.h"
 
 FExtendedFOVMargin::FExtendedFOVMargin() :
@@ -50,15 +51,27 @@ AChannelerCharacter::AChannelerCharacter() :
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::InfiniteScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 25),
-	Easing(false), EasingResponsiveness(0.25f),
-	mGameMode(nullptr)
-{}
+	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 25),
+	Easing(false), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0),
+	mGameMode(nullptr), mGhostCamActor(nullptr)
+{
+	if (GetWorld() != nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor on construction"));
+		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
+	}
+}
 
 void AChannelerCharacter::BeginPlay()
 {
 	UE_LOG(LogTemp, Warning, TEXT("AChannelerCharacter::BeginPlay()"));
 	Super::BeginPlay();
+
+	if (mGhostCamActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor in BEginPlay()"));
+		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
+	}
 
 	mEyeX = &IEyeXPlugin::Get();
 	UserPresence = mEyeX->GetUserPresence();
@@ -101,9 +114,6 @@ void AChannelerCharacter::BeginPlay()
 void AChannelerCharacter::Tick(float deltaSeconds)
 {
 	Super::Tick(deltaSeconds);
-
-	FRotator cameraRotation = GetFirstPersonCameraComponent()->RelativeRotation;  //GetComponentRotation();
-	//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), cameraRotation.Yaw, cameraRotation.Pitch, cameraRotation.Roll);
 
 	ExtendedFOV();
 
@@ -158,6 +168,11 @@ bool AChannelerCharacter::IsMovementEnabled() const
 bool AChannelerCharacter::IsLookEnabled() const
 {
 	return bLookEnabled;
+}
+
+FRotator AChannelerCharacter::GetCharacterViewRotation() const
+{
+	return GetViewRotation();
 }
 
 bool AChannelerCharacter::IsLeftEyeClosed() const
@@ -687,13 +702,11 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 	finalCameraYaw = finalCameraYaw * ExtendedScreenMaxAngle.X * speedInterpolation.X;
 	float yaw = cameraRotation.Yaw;
 	yaw += EasingResponsiveness * (finalCameraYaw - yaw);
-	//cameraRotation.Yaw = finalCameraYaw;
-	//camera->SetRelativeRotation(FQuat(cameraRotation));
+	cameraRotation.Yaw = finalCameraYaw;
 	cameraRotation.Roll = 0;
 	cameraRotation.Pitch = 0;
-	cameraRotation.Yaw = (cameraRotation.Yaw - finalCameraYaw);
-	camera->AddRelativeRotation(FQuat(cameraRotation));
-	UE_LOG(LogTemp, Warning, TEXT("New camera rotation = %f %f"), camera->RelativeRotation.Yaw, cameraRotation.Yaw);
+
+	mFOVCameraRotation = cameraRotation;
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()

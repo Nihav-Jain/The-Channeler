@@ -104,6 +104,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Channeler")
 	bool IsLookEnabled() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Channeler")
+	FRotator GetCharacterViewRotation() const;
+
 	/**
 	*	[Blueprint Callable] Getter for the status of LEFT EYE for the current frame
 	*	@return true if the left eye was closed in the current frame, false otherwise
@@ -385,10 +388,12 @@ private:
 
 	/** Extended FOV */
 	
+	class AGhostCameraActor* mGhostCamActor;
 	FIntPoint mViewportCenter;
 	FIntPoint mViewportSize;
 	FVector4 mFOVMargin;
 	bool mMouseWasMoved;
+	FRotator mFOVCameraRotation;
 
 	void ExtendedFOV();
 	void InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
