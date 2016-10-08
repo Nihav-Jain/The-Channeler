@@ -37,6 +37,8 @@ void AGhostCameraActor::Tick( float DeltaTime )
 	FRotator ghostCamActorRotation = FRotator(channelerViewRotation.Pitch, channelerRotation.Yaw, channelerRotation.Roll);
 	FVector ghostCamActorLocation = mChanneler->GetActorLocation();
 	ghostCamActorLocation.Z += 64.0f;
+	UE_LOG(LogTemp, Warning, TEXT("1. %f %f %f"), GhostCam->RelativeRotation.Yaw, GhostCam->RelativeRotation.Pitch, GhostCam->RelativeRotation.Roll);
 	SetActorLocationAndRotation(ghostCamActorLocation, ghostCamActorRotation);
+	UE_LOG(LogTemp, Warning, TEXT("2. %f %f %f"), GhostCam->RelativeRotation.Yaw, GhostCam->RelativeRotation.Pitch, GhostCam->RelativeRotation.Roll);
 }
 

@@ -50,12 +50,12 @@ AChannelerCharacter::AChannelerCharacter() :
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::InfiniteScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 25),
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::ExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
+	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(60, 60),
 	Easing(false), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0),
 	mGameMode(nullptr), mGhostCamActor(nullptr)
 {
-	if (GetWorld() != nullptr)
+	if (GetWorld() != nullptr && ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor on construction"));
 		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
@@ -67,7 +67,7 @@ void AChannelerCharacter::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("AChannelerCharacter::BeginPlay()"));
 	Super::BeginPlay();
 
-	if (mGhostCamActor == nullptr)
+	if (mGhostCamActor == nullptr && ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor in BEginPlay()"));
 		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
@@ -636,10 +636,10 @@ void AChannelerCharacter::ExtendedFOV()
 				|| (gazePoint.Value.Y > mViewportSize.Y)
 				)
 			{
-				if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-				{
-					ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
-				}
+				//if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+				//{
+				//	ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
+				//}
 				return;
 			}
 
@@ -702,11 +702,11 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 	finalCameraYaw = finalCameraYaw * ExtendedScreenMaxAngle.X * speedInterpolation.X;
 	float yaw = cameraRotation.Yaw;
 	yaw += EasingResponsiveness * (finalCameraYaw - yaw);
-	cameraRotation.Yaw = finalCameraYaw;
-	cameraRotation.Roll = 0;
-	cameraRotation.Pitch = 0;
 
 	mFOVCameraRotation = cameraRotation;
+	yaw = finalCameraYaw;	// comment this later
+	yaw = (yaw < 0) ? (360 + yaw) : yaw;
+	mGhostCamActor->GhostCam->RelativeRotation.Yaw = yaw;
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()
