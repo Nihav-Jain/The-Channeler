@@ -33,13 +33,6 @@ enum class EEyeToDetect : uint8
 	EYE_MAX
 };
 
-UENUM(BlueprintType)
-enum class EExtendedFOVMode : uint8
-{
-	InfiniteScreen		UMETA(DisplayName = "Infinite Screen"),
-	ExtendedScreen		UMETA(DisplayName = "Extended Screen")
-};
-
 USTRUCT(BlueprintType)
 struct FExtendedFOVMargin
 {
@@ -311,9 +304,6 @@ public:
 	bool ExtendedFOVEnabled;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Extended FOV")
-	EExtendedFOVMode ExtendedFOVMode;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Extended FOV")
 	FExtendedFOVMargin ExtendedFOVMargin;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
@@ -332,9 +322,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 0.0f, ClampMax = 1.0f))
 	float EasingResponsiveness;
-
-	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
-	FVector2D ExtendedScreenMaxAngle;
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -391,8 +378,6 @@ private:
 	bool mMouseWasMoved;
 
 	void ExtendedFOV();
-	void InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
-	void ExtendedScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
 
 	/** EyeX Simulation */
 	

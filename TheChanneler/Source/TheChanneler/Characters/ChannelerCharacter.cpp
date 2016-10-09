@@ -49,10 +49,10 @@ AChannelerCharacter::AChannelerCharacter() :
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::InfiniteScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 25),
-	Easing(false), EasingResponsiveness(0.25f),
-	mGameMode(nullptr)
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
+	mViewportCenter(1920/2, 1080/2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), 
+	mGameMode(nullptr),
+	Easing(false), EasingResponsiveness(0.25f)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -101,9 +101,6 @@ void AChannelerCharacter::BeginPlay()
 void AChannelerCharacter::Tick(float deltaSeconds)
 {
 	Super::Tick(deltaSeconds);
-
-	FRotator cameraRotation = GetFirstPersonCameraComponent()->RelativeRotation;  //GetComponentRotation();
-	//UE_LOG(LogTemp, Warning, TEXT("%f %f %f"), cameraRotation.Yaw, cameraRotation.Pitch, cameraRotation.Roll);
 
 	ExtendedFOV();
 
@@ -605,6 +602,7 @@ void AChannelerCharacter::ExtendedFOV()
 	if (!MouseVsFov && mMouseWasMoved)
 		return;
 
+	//TEyeXMaybeValue<FEyeXScreenBounds> screenbounds = mEyeX->GetScreenBounds();
 	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
 	if (gazePoint.bHasValue)
 	{
@@ -621,14 +619,10 @@ void AChannelerCharacter::ExtendedFOV()
 				|| (gazePoint.Value.Y > mViewportSize.Y)
 				)
 			{
-				if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-				{
-					ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
-				}
 				return;
 			}
 
-			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
+			UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
 
@@ -645,55 +639,20 @@ void AChannelerCharacter::ExtendedFOV()
 					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
 			}
 
-			if (ExtendedFOVMode == EExtendedFOVMode::InfiniteScreen)
-			{
-				InfiniteScreenFOV(relativeGazePoint, speedInterpolation);
-			}
-			else if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-			{
-				ExtendedScreenFOV(relativeGazePoint, speedInterpolation);
-			}
-		}
-		else if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-		{
-			ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
+			FVector2D fovSpeed = FVector2D(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X,
+										relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
+
+			APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
+			
+			float deltaYaw = fovSpeed.X * playerController->InputYawScale;
+			float deltaPitch = fovSpeed.Y * playerController->InputPitchScale;
+
+			AddControllerYawInput(fovSpeed.X);
+			AddControllerPitchInput(fovSpeed.Y);
 		}
 	}
 
 	mMouseWasMoved = false;
-}
-
-void AChannelerCharacter::InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation)
-{
-	FVector2D fovSpeed = FVector2D(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X,
-		relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
-
-	APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
-
-	float deltaYaw = fovSpeed.X * playerController->InputYawScale;
-	float deltaPitch = fovSpeed.Y * playerController->InputPitchScale;
-
-	AddControllerYawInput(fovSpeed.X);
-	AddControllerPitchInput(fovSpeed.Y);
-
-}
-
-void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation)
-{
-	UCameraComponent* camera = GetFirstPersonCameraComponent();
-	
-	FRotator cameraRotation = camera->RelativeRotation;
-	float finalCameraYaw = (relativeGazePoint.X < 0) ? -1 : 1;
-	finalCameraYaw = finalCameraYaw * ExtendedScreenMaxAngle.X * speedInterpolation.X;
-	float yaw = cameraRotation.Yaw;
-	yaw += EasingResponsiveness * (finalCameraYaw - yaw);
-	//cameraRotation.Yaw = finalCameraYaw;
-	//camera->SetRelativeRotation(FQuat(cameraRotation));
-	cameraRotation.Roll = 0;
-	cameraRotation.Pitch = 0;
-	cameraRotation.Yaw = (cameraRotation.Yaw - finalCameraYaw);
-	camera->AddRelativeRotation(FQuat(cameraRotation));
-	UE_LOG(LogTemp, Warning, TEXT("New camera rotation = %f %f"), camera->RelativeRotation.Yaw, cameraRotation.Yaw);
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()
