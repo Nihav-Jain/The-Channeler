@@ -50,28 +50,15 @@ AChannelerCharacter::AChannelerCharacter() :
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::ExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(false),
-	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(60, 60),
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::ExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(true),
+	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 20),
 	Easing(false), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0),
 	mGameMode(nullptr), mGhostCamActor(nullptr)
-{
-	if (GetWorld() != nullptr && ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor on construction"));
-		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
-	}
-}
+{}
 
 void AChannelerCharacter::BeginPlay()
 {
-	UE_LOG(LogTemp, Warning, TEXT("AChannelerCharacter::BeginPlay()"));
 	Super::BeginPlay();
-
-	if (mGhostCamActor == nullptr && ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Spawned ghost actor in BEginPlay()"));
-		mGhostCamActor = GetWorld()->SpawnActor<AGhostCameraActor>(AGhostCameraActor::StaticClass(), GetActorLocation(), GetActorRotation());
-	}
 
 	mEyeX = &IEyeXPlugin::Get();
 	UserPresence = mEyeX->GetUserPresence();
@@ -86,7 +73,7 @@ void AChannelerCharacter::BeginPlay()
 		mViewportSize = GEngine->GameViewport->Viewport->GetSizeXY();
 		mViewportCenter = FIntPoint(mViewportSize.X / 2, mViewportSize.Y / 2);
 
-		UE_LOG(LogTemp, Warning, TEXT("Viewport size = %d %d"), mViewportSize.X, mViewportSize.Y);
+		//UE_LOG(LogTemp, Warning, TEXT("Viewport size = %d %d"), mViewportSize.X, mViewportSize.Y);
 	}
 
 	mFOVMargin = FVector4(
@@ -260,7 +247,7 @@ void AChannelerCharacter::SetupPlayerInputComponent(class UInputComponent* Input
 		{
 			mKeyMappings.Add(inputSettings->ActionMappings[i].ActionName, inputSettings->ActionMappings[i].Key);
 			InputComponent->BindAction(inputSettings->ActionMappings[i].ActionName, IE_Pressed, this, &AChannelerCharacter::SkipLevelAction);
-			UE_LOG(LogTemp, Warning, TEXT("Registered %s as a SkipLevelAction"), *actionName);
+			//UE_LOG(LogTemp, Warning, TEXT("Registered %s as a SkipLevelAction"), *actionName);
 		}
 	}
 
@@ -503,11 +490,11 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 						LeftEyeClosed.Broadcast();
 					mLeftEyeClosedDuration = 0;		// should ideally be mEyeClosedDuration = mEyeClosedDuration % MinEyeClosedDuration; but modulus for floats is not supported
 					mLastTriggeredEyeEvent = EEyeToDetect::EYE_LEFT;
-					UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
+					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
+					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
 				}
 			}
 			// check for right eye wink
@@ -519,11 +506,11 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 						RightEyeClosed.Broadcast();
 					mRightEyeClosedDuration = 0;
 					mLastTriggeredEyeEvent = EEyeToDetect::EYE_RIGHT;
-					UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
+					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
 				}
 				else
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
+					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
 				}
 			}
 
@@ -548,7 +535,7 @@ void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
 					//mBlinkTimer += deltaSeconds; // debatable
 					if (mBlinkTimer >= MinBlinkDuration && mBlinkTimer <= MaxBlinkDuration)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
+						//UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
 						bDidBlink = true;
 						mBlinkCount++;
 						if (UserBlinked.IsBound())
@@ -647,8 +634,19 @@ void AChannelerCharacter::ExtendedFOV()
 			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 			relativeGazePoint.Normalize();
 
-			FVector2D speedInterpolation = FVector2D(1.0f, 1.0f);
-			if (GradientSpeed)
+			FVector2D speedInterpolation = FVector2D(0.0f, 0.0f);
+			if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+			{
+				if (gazePoint.Value.X < mFOVMargin.X)
+					speedInterpolation.X = -1;
+				else if (gazePoint.Value.X >(mViewportSize.X - mFOVMargin.Z))
+					speedInterpolation.X = 1;
+				if (gazePoint.Value.Y < mFOVMargin.Y)
+					speedInterpolation.Y = 1;
+				else if (gazePoint.Value.Y >(mViewportSize.Y - mFOVMargin.W))
+					speedInterpolation.Y = -1;
+			}
+			else if (GradientSpeed && ExtendedFOVMode == EExtendedFOVMode::InfiniteScreen)
 			{
 				if (gazePoint.Value.X < mFOVMargin.X)
 					speedInterpolation.X = (mFOVMargin.X - gazePoint.Value.X) / mFOVMargin.X;
@@ -695,18 +693,40 @@ void AChannelerCharacter::InfiniteScreenFOV(const FVector2D& relativeGazePoint, 
 
 void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation)
 {
-	UCameraComponent* camera = GetFirstPersonCameraComponent();
-	
-	FRotator cameraRotation = camera->RelativeRotation;
-	float finalCameraYaw = (relativeGazePoint.X < 0) ? -1 : 1;
-	finalCameraYaw = finalCameraYaw * ExtendedScreenMaxAngle.X * speedInterpolation.X;
-	float yaw = cameraRotation.Yaw;
-	yaw += EasingResponsiveness * (finalCameraYaw - yaw);
+	float inputYawScale = GetWorld()->GetFirstPlayerController()->InputYawScale;
+	FVector2D speed = speedInterpolation;
 
-	mFOVCameraRotation = cameraRotation;
-	yaw = finalCameraYaw;	// comment this later
-	yaw = (yaw < 0) ? (360 + yaw) : yaw;
-	mGhostCamActor->GhostCam->RelativeRotation.Yaw = yaw;
+	float yaw = EasingResponsiveness * (ExtendedScreenMaxAngle.X * speed.X - mFOVCameraRotation.Yaw);
+	float finalCameraYaw = mFOVCameraRotation.Yaw + yaw;
+	if (FMath::Abs(finalCameraYaw) <= ExtendedScreenMaxAngle.X)
+	{
+		mFOVCameraRotation.Yaw = finalCameraYaw;
+		AddControllerYawInput(yaw / inputYawScale);
+	}
+
+	FRotator cameraRotation = GetFirstPersonCameraComponent()->RelativeRotation;
+	float inputPitchScale = GetWorld()->GetFirstPlayerController()->InputPitchScale;
+	float pitch = EasingResponsiveness * (ExtendedScreenMaxAngle.Y * speed.Y - mFOVCameraRotation.Pitch);
+	float finalCameraPitch = mFOVCameraRotation.Pitch + pitch;
+	if (FMath::Abs(finalCameraPitch) <= ExtendedScreenMaxAngle.Y)
+	{
+		mFOVCameraRotation.Pitch = finalCameraPitch;
+		AddControllerPitchInput(pitch / inputPitchScale);
+	}
+
+	// Extended Screen FOV by translation
+	/*
+	const FVector ExtendedScreenMaxTranslation = FVector(50.0f, 50.0f, 0);
+	FVector currentLocation = GetFirstPersonCameraComponent()->RelativeLocation;
+	UE_LOG(LogTemp, Warning, TEXT("1. %f %f %f"), currentLocation.X, currentLocation.Y, currentLocation.Z);
+	FVector newLocation = FVector(0, 0, 0);
+	newLocation.Y = ExtendedScreenMaxTranslation.X * speedInterpolation.X;
+	newLocation.Z = ExtendedScreenMaxTranslation.Y * speedInterpolation.Y;
+
+	GetFirstPersonCameraComponent()->SetRelativeLocation(currentLocation + EasingResponsiveness * (newLocation - currentLocation));
+	currentLocation = GetFirstPersonCameraComponent()->RelativeLocation;
+	UE_LOG(LogTemp, Warning, TEXT("2. %f %f %f"), currentLocation.X, currentLocation.Y, currentLocation.Z);
+	*/
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()
