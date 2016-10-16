@@ -339,6 +339,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
 	FVector2D ExtendedScreenMaxAngle;
 
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
+	FVector2D ExtendedScreenFilterAngle;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;

@@ -52,7 +52,7 @@ AChannelerCharacter::AChannelerCharacter() :
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
 	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::ExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(true),
 	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 20),
-	Easing(false), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0),
+	Easing(true), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0), ExtendedScreenFilterAngle(1.0f, 1.0f),
 	mGameMode(nullptr), mGhostCamActor(nullptr)
 {}
 
@@ -635,7 +635,31 @@ void AChannelerCharacter::ExtendedFOV()
 			relativeGazePoint.Normalize();
 
 			FVector2D speedInterpolation = FVector2D(0.0f, 0.0f);
-			if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+
+			if (GradientSpeed)
+			{
+				if (gazePoint.Value.X < mFOVMargin.X)
+				{
+					speedInterpolation.X = (mFOVMargin.X - gazePoint.Value.X) / mFOVMargin.X;
+					if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+						speedInterpolation.X = -speedInterpolation.X;
+				}
+				else if (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
+				{
+					speedInterpolation.X = (mFOVMargin.Z - (mViewportSize.X - gazePoint.Value.X)) / mFOVMargin.Z;
+				}
+				if (gazePoint.Value.Y < mFOVMargin.Y)
+				{
+					speedInterpolation.Y = (mFOVMargin.Y - gazePoint.Value.Y) / mFOVMargin.Y;
+				}
+				else if (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
+				{
+					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
+					if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+						speedInterpolation.Y = -speedInterpolation.Y;
+				}
+			}
+			else if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
 			{
 				if (gazePoint.Value.X < mFOVMargin.X)
 					speedInterpolation.X = -1;
@@ -645,17 +669,6 @@ void AChannelerCharacter::ExtendedFOV()
 					speedInterpolation.Y = 1;
 				else if (gazePoint.Value.Y >(mViewportSize.Y - mFOVMargin.W))
 					speedInterpolation.Y = -1;
-			}
-			else if (GradientSpeed && ExtendedFOVMode == EExtendedFOVMode::InfiniteScreen)
-			{
-				if (gazePoint.Value.X < mFOVMargin.X)
-					speedInterpolation.X = (mFOVMargin.X - gazePoint.Value.X) / mFOVMargin.X;
-				else if (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
-					speedInterpolation.X = (mFOVMargin.Z - (mViewportSize.X - gazePoint.Value.X)) / mFOVMargin.Z;
-				if (gazePoint.Value.Y < mFOVMargin.Y)
-					speedInterpolation.Y = (mFOVMargin.Y - gazePoint.Value.Y) / mFOVMargin.Y;
-				else if (gazePoint.Value.Y > (mViewportSize.Y - mFOVMargin.W))
-					speedInterpolation.Y = (mFOVMargin.W - (mViewportSize.Y - gazePoint.Value.Y)) / mFOVMargin.W;
 			}
 
 			if (ExtendedFOVMode == EExtendedFOVMode::InfiniteScreen)
@@ -698,7 +711,7 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 
 	float yaw = EasingResponsiveness * (ExtendedScreenMaxAngle.X * speed.X - mFOVCameraRotation.Yaw);
 	float finalCameraYaw = mFOVCameraRotation.Yaw + yaw;
-	if (FMath::Abs(finalCameraYaw) <= ExtendedScreenMaxAngle.X)
+	if (FMath::Abs(finalCameraYaw) <= ExtendedScreenMaxAngle.X && FMath::Abs(yaw) > ExtendedScreenFilterAngle.X)
 	{
 		mFOVCameraRotation.Yaw = finalCameraYaw;
 		AddControllerYawInput(yaw / inputYawScale);
@@ -708,7 +721,7 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 	float inputPitchScale = GetWorld()->GetFirstPlayerController()->InputPitchScale;
 	float pitch = EasingResponsiveness * (ExtendedScreenMaxAngle.Y * speed.Y - mFOVCameraRotation.Pitch);
 	float finalCameraPitch = mFOVCameraRotation.Pitch + pitch;
-	if (FMath::Abs(finalCameraPitch) <= ExtendedScreenMaxAngle.Y)
+	if (FMath::Abs(finalCameraPitch) <= ExtendedScreenMaxAngle.Y && FMath::Abs(pitch) > ExtendedScreenFilterAngle.Y)
 	{
 		mFOVCameraRotation.Pitch = finalCameraPitch;
 		AddControllerPitchInput(pitch / inputPitchScale);
