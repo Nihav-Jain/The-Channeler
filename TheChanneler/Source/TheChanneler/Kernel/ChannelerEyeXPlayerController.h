@@ -6,6 +6,17 @@
 #include "ChannelerEyeXPlayerController.generated.h"
 
 class UStoryManager;
+
+/**
+ * Enumeration for determining the device which input was last known to come from.
+ */
+UENUM(BlueprintType)
+enum class EInputDevices : uint8
+{
+	ID_KBM			UMETA(DisplayName = "Keyboard/Mouse"),
+	ID_Gamepad		UMETA(DisplayName = "Gamepad")
+};
+
 /**
  * 
  */
@@ -17,6 +28,8 @@ class THECHANNELER_API AChannelerEyeXPlayerController : public AEyeXPlayerContro
 public:
 	AChannelerEyeXPlayerController();
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaSeconds) override;
 	
 	UChannelerCheatManager& CheatManager();
 
@@ -34,7 +47,14 @@ public:
 	UFUNCTION(Exec, BlueprintCallable, Category = "Storytelling")
 	void JumpToStoryNode(FString nodeName);
 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	EInputDevices GetLastKnownInputDevice() const;
+
 private:
 	class UChannelerCheatManager* mCheatManager;
 	UStoryManager* mStoryManager;
+	EInputDevices mLastKnownInputDevice;
+
+	bool WasKMBInputJustDetected() const;
+	bool WasGamepadInputJustDetected() const;
 };
