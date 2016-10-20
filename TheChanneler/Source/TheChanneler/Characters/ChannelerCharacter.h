@@ -33,6 +33,13 @@ enum class EEyeToDetect : uint8
 	EYE_MAX
 };
 
+UENUM(BlueprintType)
+enum class EExtendedFOVMode : uint8
+{
+	InfiniteScreen		UMETA(DisplayName = "Infinite Screen"),
+	ExtendedScreen		UMETA(DisplayName = "Extended Screen")
+};
+
 USTRUCT(BlueprintType)
 struct FExtendedFOVMargin
 {
@@ -96,6 +103,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Channeler")
 	bool IsLookEnabled() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Channeler")
+	FRotator GetCharacterViewRotation() const;
 
 	/**
 	*	[Blueprint Callable] Getter for the status of LEFT EYE for the current frame
@@ -304,6 +314,9 @@ public:
 	bool ExtendedFOVEnabled;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Extended FOV")
+	EExtendedFOVMode ExtendedFOVMode;
+
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Extended FOV")
 	FExtendedFOVMargin ExtendedFOVMargin;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Extended FOV")
@@ -322,6 +335,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 0.0f, ClampMax = 1.0f))
 	float EasingResponsiveness;
+
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
+	FVector2D ExtendedScreenMaxAngle;
+
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
+	FVector2D ExtendedScreenFilterAngle;
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -372,12 +391,16 @@ private:
 
 	/** Extended FOV */
 	
+	class AGhostCameraActor* mGhostCamActor;
 	FIntPoint mViewportCenter;
 	FIntPoint mViewportSize;
 	FVector4 mFOVMargin;
 	bool mMouseWasMoved;
+	FRotator mFOVCameraRotation;
 
 	void ExtendedFOV();
+	void InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
+	void ExtendedScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
 
 	/** EyeX Simulation */
 	
