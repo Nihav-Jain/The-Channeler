@@ -104,6 +104,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Channeler")
 	bool IsLookEnabled() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Channeler")
+	FRotator GetCharacterViewRotation() const;
+
 	/**
 	*	[Blueprint Callable] Getter for the status of LEFT EYE for the current frame
 	*	@return true if the left eye was closed in the current frame, false otherwise
@@ -336,6 +339,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
 	FVector2D ExtendedScreenMaxAngle;
 
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
+	FVector2D ExtendedScreenFilterAngle;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;
@@ -385,10 +391,12 @@ private:
 
 	/** Extended FOV */
 	
+	class AGhostCameraActor* mGhostCamActor;
 	FIntPoint mViewportCenter;
 	FIntPoint mViewportSize;
 	FVector4 mFOVMargin;
 	bool mMouseWasMoved;
+	FRotator mFOVCameraRotation;
 
 	void ExtendedFOV();
 	void InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
