@@ -68,7 +68,7 @@ void UGameInstanceBase::UpdateScreenResolution()
 			if (resolutionQuery)
 			{
 				FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
-				const FIntPoint& maxScreenRes = availableResolutions.Last();
+				const FIntPoint& maxScreenRes = FIntPoint(1280, 720); //availableResolutions.Last();
 				if (maxScreenRes.X != currentScreenRes.X || maxScreenRes.Y != currentScreenRes.Y)
 				{
 					gameSettings->SetScreenResolution(maxScreenRes);

@@ -15,30 +15,30 @@ void ATheChannelerGameMode::BeginPlay()
 	IEyeXPlugin& eyeX = IEyeXPlugin::Get();
 	EEyeXDeviceStatus::Type deviceStatus = eyeX.GetEyeTrackingDeviceStatus();
 
-	switch (deviceStatus)
-	{
-	case EEyeXDeviceStatus::Disabled:		// intentional fall through
-	case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
-	case EEyeXDeviceStatus::Unknown:
-		UE_LOG(LogTemp, Warning, TEXT("Not Tracking"));
-		eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
-		eyeX.SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
-		break;
-	case EEyeXDeviceStatus::Tracking:
-		UE_LOG(LogTemp, Warning, TEXT("Tracking"));
-		eyeX.SetEmulationMode(EEyeXEmulationMode::Disabled);
-		break;
-	}
-
-	//if (bSimulateEyeX)
+	//switch (deviceStatus)
 	//{
+	//case EEyeXDeviceStatus::Disabled:		// intentional fall through
+	//case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
+	//case EEyeXDeviceStatus::Unknown:
+	//	UE_LOG(LogTemp, Warning, TEXT("Not Tracking"));
 	//	eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
 	//	eyeX.SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
-	//}
-	//else
-	//{
+	//	break;
+	//case EEyeXDeviceStatus::Tracking:
+	//	UE_LOG(LogTemp, Warning, TEXT("Tracking"));
 	//	eyeX.SetEmulationMode(EEyeXEmulationMode::Disabled);
+	//	break;
 	//}
+
+	if (bSimulateEyeX)
+	{
+		eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
+		eyeX.SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
+	}
+	else
+	{
+		eyeX.SetEmulationMode(EEyeXEmulationMode::Disabled);
+	}
 
 	ChangeMenuWidget(StartingWidgetClass);
 	EyeXEx = nullptr;
