@@ -36,6 +36,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "UMG Game")
 		void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
 
+	UFUNCTION(BlueprintCallable, Category = "UMG Game")
+		UUserWidget* GetCurrentMenuWidget();
 
 	/**
 	* ReadFile - Reads the file with the given name in the string provided.
