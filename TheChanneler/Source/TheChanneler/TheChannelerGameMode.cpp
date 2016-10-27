@@ -46,14 +46,7 @@ void ATheChannelerGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetC
 
 UUserWidget* ATheChannelerGameMode::GetCurrentMenuWidget()
 {
-	if (CurrentWidget != nullptr)
-	{
-		return CurrentWidget;
-	}
-	else
-	{
-		return nullptr;
-	}
+	return CurrentWidget;
 }
 
 void ATheChannelerGameMode::ReadFile(FString& StringData, FString FileNameWithExtension)
