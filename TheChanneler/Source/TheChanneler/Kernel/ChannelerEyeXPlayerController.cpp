@@ -8,7 +8,7 @@
 #include "ChannelerEyeXPlayerController.h"
 
 AChannelerEyeXPlayerController::AChannelerEyeXPlayerController() :
-	mCheatManager(nullptr), mLastKnownInputDevice(EInputDevices::ID_KBM)
+	mCheatManager(nullptr), mLastKnownInputDevice(EInputDevices::ID_KBM), mPreviousFramesLastKnownInputDevice(mLastKnownInputDevice)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -32,6 +32,8 @@ void AChannelerEyeXPlayerController::BeginPlay()
 void AChannelerEyeXPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	mPreviousFramesLastKnownInputDevice = mLastKnownInputDevice;
 
 	if (WasGamepadInputJustDetected())
 	{
@@ -111,6 +113,11 @@ void AChannelerEyeXPlayerController::JumpToStoryNode(FString nodeName)
 EInputDevices AChannelerEyeXPlayerController::GetLastKnownInputDevice() const
 {
 	return mLastKnownInputDevice;
+}
+
+EInputDevices AChannelerEyeXPlayerController::GetPreviousFramesLastKnownInputDevice() const
+{
+	return mPreviousFramesLastKnownInputDevice;
 }
 
 bool AChannelerEyeXPlayerController::WasKMBInputJustDetected() const

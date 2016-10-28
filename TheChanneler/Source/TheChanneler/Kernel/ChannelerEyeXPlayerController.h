@@ -50,11 +50,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	EInputDevices GetLastKnownInputDevice() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	EInputDevices GetPreviousFramesLastKnownInputDevice() const;
+
 private:
 	class UChannelerCheatManager* mCheatManager;
 	UStoryManager* mStoryManager;
 	EInputDevices mLastKnownInputDevice;
-
+	EInputDevices mPreviousFramesLastKnownInputDevice;
 	bool WasKMBInputJustDetected() const;
 	bool WasGamepadInputJustDetected() const;
 };
