@@ -652,12 +652,6 @@ void AChannelerCharacter::ExtendedFOV()
 				return;
 			}
 
-			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
-			if (ExtendedFOVMode == EExtendedFOVMode::EllipticalExtendedScreen)
-			{
-				EllipticalExtendedScreenFOV(FVector2D(relativeGazePoint));
-				return;
-			}
 			relativeGazePoint.Normalize();
 
 			FVector2D speedInterpolation = FVector2D(0.0f, 0.0f);
@@ -838,4 +832,22 @@ void AChannelerCharacter::SimulateRightEyeOpen()
 bool AChannelerCharacter::IsEyeXSimulating() const
 {
 	return (mGameMode != nullptr) ? mGameMode->IsEyeXSimulating() : false;
+}
+
+void AChannelerCharacter::UpdateScreenResolutionRelatedProperties(int32 newWidth, int32 newHeight)
+{
+	mViewportSize = FIntPoint(newWidth, newHeight);
+	mViewportCenter = FIntPoint(mViewportSize.X / 2, mViewportSize.Y / 2);
+
+	mFOVMargin = FVector4(
+		mViewportSize.X * ExtendedFOVMargin.Left,
+		mViewportSize.Y * ExtendedFOVMargin.Top,
+		mViewportSize.X * ExtendedFOVMargin.Right,
+		mViewportSize.Y * ExtendedFOVMargin.Bottom
+	);
+
+	mFOVEllipseAxes = FVector2D(NoFOVEllipseAxesRatio.X * mViewportSize.X / 2, NoFOVEllipseAxesRatio.Y * mViewportSize.Y / 2);
+	mFOVEllipseAxesSquared = FVector2D(FMath::Square(mFOVEllipseAxes.X), FMath::Square(mFOVEllipseAxes.Y));
+	mFOVOuterEllipseAxes = FVector2D(mViewportSize.X / FMath::Sqrt(2), mViewportSize.Y / FMath::Sqrt(2));
+	mFOVOuterEllipseAxesSquared = FVector2D(FMath::Square(mFOVOuterEllipseAxes.X), FMath::Square(mFOVOuterEllipseAxes.Y));
 }
