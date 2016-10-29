@@ -50,10 +50,11 @@ AChannelerCharacter::AChannelerCharacter() :
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::ExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(true),
-	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(25, 20),
+	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::EllipticalExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(true),
+	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(30, 30),
 	Easing(true), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0), ExtendedScreenFilterAngle(1.0f, 1.0f),
-	mGameMode(nullptr), mGhostCamActor(nullptr)
+	mGameMode(nullptr), mGhostCamActor(nullptr),
+	mFOVEllipseAxes(0, 0), NoFOVEllipseAxesRatio(0.1f, 0.1f)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -82,6 +83,11 @@ void AChannelerCharacter::BeginPlay()
 		mViewportSize.X * ExtendedFOVMargin.Right,
 		mViewportSize.Y * ExtendedFOVMargin.Bottom
 	);
+
+	mFOVEllipseAxes = FVector2D(NoFOVEllipseAxesRatio.X * mViewportSize.X / 2, NoFOVEllipseAxesRatio.Y * mViewportSize.Y / 2);
+	mFOVEllipseAxesSquared = FVector2D(FMath::Square(mFOVEllipseAxes.X), FMath::Square(mFOVEllipseAxes.Y));
+	mFOVOuterEllipseAxes = FVector2D(mViewportSize.X / FMath::Sqrt(2), mViewportSize.Y / FMath::Sqrt(2));
+	mFOVOuterEllipseAxesSquared = FVector2D(FMath::Square(mFOVOuterEllipseAxes.X), FMath::Square(mFOVOuterEllipseAxes.Y));
 
 	AGameMode* gameMode = UGameplayStatics::GetGameMode(this);
 	if (gameMode == nullptr)
@@ -610,6 +616,13 @@ void AChannelerCharacter::ExtendedFOV()
 	FEyeXGazePoint gazePoint = mEyeX->GetGazePoint(EEyeXGazePointDataMode::LightlyFiltered);
 	if (gazePoint.bHasValue)
 	{
+		FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
+		if (ExtendedFOVMode == EExtendedFOVMode::EllipticalExtendedScreen)
+		{
+			EllipticalExtendedScreenFOV(FVector2D(relativeGazePoint));
+			return;
+		}
+
 		if ((gazePoint.Value.X < mFOVMargin.X)
 			|| (gazePoint.Value.X > (mViewportSize.X - mFOVMargin.Z))
 			|| (gazePoint.Value.Y < mFOVMargin.Y)
@@ -617,21 +630,34 @@ void AChannelerCharacter::ExtendedFOV()
 			)
 		{
 			// Check if gaze point is outside the screen.
-			if ((gazePoint.Value.X < 0)
+			if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
+			{
+				FVector2D speedInterpolation = FVector2D(0, 0);
+				if (gazePoint.Value.X < 0)
+					speedInterpolation.X = -1;
+				else if (gazePoint.Value.X > mViewportSize.X)
+					speedInterpolation.X = 1;
+				if (gazePoint.Value.Y < 0)
+					speedInterpolation.Y = 1;
+				else if (gazePoint.Value.Y > mViewportSize.Y)
+					speedInterpolation.Y = -1;
+				ExtendedScreenFOV(FVector2D(0, 0), speedInterpolation);
+			}
+			else if ((gazePoint.Value.X < 0)
 				|| (gazePoint.Value.X > mViewportSize.X)
 				|| (gazePoint.Value.Y < 0)
 				|| (gazePoint.Value.Y > mViewportSize.Y)
 				)
 			{
-				//if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
-				//{
-				//	ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
-				//}
 				return;
 			}
 
 			//UE_LOG(LogTemp, Warning, TEXT("Gaze Point = %f %f"), gazePoint.Value.X, gazePoint.Value.Y);
-			FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
+			if (ExtendedFOVMode == EExtendedFOVMode::EllipticalExtendedScreen)
+			{
+				EllipticalExtendedScreenFOV(FVector2D(relativeGazePoint));
+				return;
+			}
 			relativeGazePoint.Normalize();
 
 			FVector2D speedInterpolation = FVector2D(0.0f, 0.0f);
@@ -682,7 +708,7 @@ void AChannelerCharacter::ExtendedFOV()
 		}
 		else if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
 		{
-			ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
+			//ExtendedScreenFOV(FVector2D(0, 0), FVector2D(0, 0));
 		}
 	}
 
@@ -726,20 +752,63 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 		mFOVCameraRotation.Pitch = finalCameraPitch;
 		AddControllerPitchInput(pitch / inputPitchScale);
 	}
+}
 
-	// Extended Screen FOV by translation
-	/*
-	const FVector ExtendedScreenMaxTranslation = FVector(50.0f, 50.0f, 0);
-	FVector currentLocation = GetFirstPersonCameraComponent()->RelativeLocation;
-	UE_LOG(LogTemp, Warning, TEXT("1. %f %f %f"), currentLocation.X, currentLocation.Y, currentLocation.Z);
-	FVector newLocation = FVector(0, 0, 0);
-	newLocation.Y = ExtendedScreenMaxTranslation.X * speedInterpolation.X;
-	newLocation.Z = ExtendedScreenMaxTranslation.Y * speedInterpolation.Y;
+void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeGazePoint)
+{
+	// check if gaze point is inside the inner ellipse
+	FVector2D relativeGazePointSquared = FVector2D(FMath::Square(relativeGazePoint.X), FMath::Square(relativeGazePoint.Y));
+	FVector2D fovAngle;
+	bool alreadyCalculated = false;
+	if ((relativeGazePointSquared.X / mFOVEllipseAxesSquared.X) + (relativeGazePointSquared.Y / mFOVEllipseAxesSquared.Y) < 1)
+	{
+		fovAngle = FVector2D(0, 0);
+		alreadyCalculated = true;
+	}
+	//check if gaze point is outside the outer ellipse
+	if ((relativeGazePointSquared.X / mFOVOuterEllipseAxesSquared.X) + (relativeGazePointSquared.Y / mFOVOuterEllipseAxesSquared.Y) > 1)
+	{
+		fovAngle = FVector2D(ExtendedScreenMaxAngle.X, ExtendedScreenMaxAngle.Y);
+		alreadyCalculated = true;
+	}
 
-	GetFirstPersonCameraComponent()->SetRelativeLocation(currentLocation + EasingResponsiveness * (newLocation - currentLocation));
-	currentLocation = GetFirstPersonCameraComponent()->RelativeLocation;
-	UE_LOG(LogTemp, Warning, TEXT("2. %f %f %f"), currentLocation.X, currentLocation.Y, currentLocation.Z);
-	*/
+	// gaze point is inside the extended FOV region
+	if (!alreadyCalculated)
+	{
+		float gazeDistance = relativeGazePoint.Size();
+		float cosTheta = relativeGazePoint.X / gazeDistance;
+		float sinTheta = relativeGazePoint.Y / gazeDistance;
+
+		FVector2D pointOnOuterEllipse = FVector2D(mFOVOuterEllipseAxes.X * cosTheta, mFOVOuterEllipseAxes.Y * sinTheta);
+		FVector2D pointOnInnerEllipse = FVector2D(mFOVEllipseAxes.X * cosTheta, mFOVEllipseAxes.Y * sinTheta);
+
+		float maxGazeDistance = pointOnOuterEllipse.Size();
+		float minGazeDistance = pointOnInnerEllipse.Size();
+
+		if (gazeDistance < minGazeDistance || gazeDistance > maxGazeDistance)
+			return;
+
+		float extendedFOVRatio = (gazeDistance - minGazeDistance) / maxGazeDistance;
+		fovAngle = FVector2D(extendedFOVRatio * cosTheta * ExtendedScreenMaxAngle.X, -(extendedFOVRatio * sinTheta * ExtendedScreenMaxAngle.Y));
+	}
+
+
+	FVector2D deltaAngle = FVector2D(fovAngle.X - mFOVCameraRotation.Yaw, fovAngle.Y - mFOVCameraRotation.Pitch);
+	float inputYawScale = GetWorld()->GetFirstPlayerController()->InputYawScale;
+	float inputPitchScale = GetWorld()->GetFirstPlayerController()->InputPitchScale;
+
+	deltaAngle *= EasingResponsiveness;
+
+	if (FMath::Abs(deltaAngle.X) > ExtendedScreenFilterAngle.X)
+	{
+		AddControllerYawInput(deltaAngle.X / inputYawScale);
+		mFOVCameraRotation.Yaw += deltaAngle.X;
+	}
+	if (FMath::Abs(deltaAngle.Y) > ExtendedScreenFilterAngle.Y)
+	{
+		AddControllerPitchInput(deltaAngle.Y / inputPitchScale);
+		mFOVCameraRotation.Pitch += deltaAngle.Y;
+	}
 }
 
 void AChannelerCharacter::SimulateLeftEyeClosed()
