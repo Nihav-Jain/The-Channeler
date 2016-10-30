@@ -47,18 +47,34 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LoadingScreen")
 	TSubclassOf<class UUserWidget> LoadingScreenClass;
 
-	UFUNCTION(BlueprintCallable, Category = "Settings")
-	void UpdateScreenResolution();
-
 	UFUNCTION(BlueprintCallable, Category = "Channeler Audio")
-		void LoadAudioChannels();
+	void LoadAudioChannels();
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void SetNewScreenResolution(const FIntPoint& newScreenResolution);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
+	TArray<FIntPoint> AvailableScreenResolutions;
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void ReinforceScreenResolution();
 
 	virtual void Init() override;
 
 	void BeginLoadingScreen();
 	void EndLoadingScreen();
 
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
+	FIntPoint CurrentScreenResolution;
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	int32 GetValidDefaultScreenResolution() const;
+
 private:
+	UFUNCTION()
+	void LoadAvailableScreenResolutions();
+
 	UPROPERTY()
 	UUserWidget * LoadingScreen;
 };
