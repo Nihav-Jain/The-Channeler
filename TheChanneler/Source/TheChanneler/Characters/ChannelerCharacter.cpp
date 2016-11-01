@@ -751,6 +751,7 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeGazePoint)
 {
 	// check if gaze point is inside the inner ellipse
+	FVector2D relativePoint = relativeGazePoint;
 	FVector2D relativeGazePointSquared = FVector2D(FMath::Square(relativeGazePoint.X), FMath::Square(relativeGazePoint.Y));
 	FVector2D fovAngle;
 	bool alreadyCalculated = false;
@@ -762,16 +763,19 @@ void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeG
 	//check if gaze point is outside the outer ellipse
 	if ((relativeGazePointSquared.X / mFOVOuterEllipseAxesSquared.X) + (relativeGazePointSquared.Y / mFOVOuterEllipseAxesSquared.Y) > 1)
 	{
+		float currentGazeDistance = relativeGazePoint.Size();
+		float cosAlpha = relativeGazePoint.X / currentGazeDistance;
+		float sinAlpha = relativeGazePoint.Y / currentGazeDistance;
+		relativePoint = FVector2D(mFOVOuterEllipseAxes.X * cosAlpha, mFOVOuterEllipseAxes.Y * sinAlpha);
 		fovAngle = FVector2D(ExtendedScreenMaxAngle.X, ExtendedScreenMaxAngle.Y);
-		alreadyCalculated = true;
 	}
 
 	// gaze point is inside the extended FOV region
 	if (!alreadyCalculated)
 	{
-		float gazeDistance = relativeGazePoint.Size();
-		float cosTheta = relativeGazePoint.X / gazeDistance;
-		float sinTheta = relativeGazePoint.Y / gazeDistance;
+		float gazeDistance = relativePoint.Size();
+		float cosTheta = relativePoint.X / gazeDistance;
+		float sinTheta = relativePoint.Y / gazeDistance;
 
 		FVector2D pointOnOuterEllipse = FVector2D(mFOVOuterEllipseAxes.X * cosTheta, mFOVOuterEllipseAxes.Y * sinTheta);
 		FVector2D pointOnInnerEllipse = FVector2D(mFOVEllipseAxes.X * cosTheta, mFOVEllipseAxes.Y * sinTheta);
