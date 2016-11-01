@@ -61,6 +61,11 @@ void ATheChannelerGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetC
 	}
 }
 
+UUserWidget* ATheChannelerGameMode::GetCurrentMenuWidget()
+{
+	return CurrentWidget;
+}
+
 void ATheChannelerGameMode::ReadFile(FString& StringData, FString FileNameWithExtension)
 {
 	FileContent = &StringData;
@@ -145,7 +150,7 @@ void ATheChannelerGameMode::LaunchCalibration(const FString& OutStringData)
 			if (gameInstance != nullptr)
 			{
 				UGameInstanceBase* gameInstanceBase = Cast<UGameInstanceBase>(gameInstance);
-				gameInstanceBase->UpdateScreenResolution();
+				gameInstanceBase->ReinforceScreenResolution();
 			}
 		}
 

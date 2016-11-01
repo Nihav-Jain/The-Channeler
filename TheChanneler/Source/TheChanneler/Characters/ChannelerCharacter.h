@@ -37,7 +37,8 @@ UENUM(BlueprintType)
 enum class EExtendedFOVMode : uint8
 {
 	InfiniteScreen		UMETA(DisplayName = "Infinite Screen"),
-	ExtendedScreen		UMETA(DisplayName = "Extended Screen")
+	ExtendedScreen		UMETA(DisplayName = "Extended Screen"),
+	EllipticalExtendedScreen	UMETA(DisplayName = "Elliptical Extended Screen")
 };
 
 USTRUCT(BlueprintType)
@@ -342,6 +343,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 1, ClampMax = 89))
 	FVector2D ExtendedScreenFilterAngle;
 
+	/* Ellipse axes, centered at the center of the screen. Inside of ellipse is unaffected by FOV. 
+	MajorAxisRatio = (MajorAxisLength / ScreenWidth); MinorAxisRatio = (MinorAxisLength / ScreenHeight);  
+	*/
+	UPROPERTY(EditAnywhere, Category = "Extended FOV", meta = (ClampMin = 0.01f, ClampMax = 1.0f))
+	FVector2D NoFOVEllipseAxesRatio;
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void Jump() override;
@@ -352,6 +359,9 @@ protected:
 	virtual void AddControllerPitchInput(float Val) override;
 	virtual void TurnAtRate(float Rate) override;
 	virtual void LookUpAtRate(float Rate) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Screen Resolution")
+	void UpdateScreenResolutionRelatedProperties(int32 newWidth, int32 newHeight);
 
 private:
 	void SkipLevelAction();
@@ -398,9 +408,15 @@ private:
 	bool mMouseWasMoved;
 	FRotator mFOVCameraRotation;
 
+	FVector2D mFOVEllipseAxes;
+	FVector2D mFOVEllipseAxesSquared;
+	FVector2D mFOVOuterEllipseAxes;
+	FVector2D mFOVOuterEllipseAxesSquared;
+
 	void ExtendedFOV();
 	void InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
 	void ExtendedScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation);
+	void EllipticalExtendedScreenFOV(const FVector2D& relativeGazePoint);
 
 	/** EyeX Simulation */
 	

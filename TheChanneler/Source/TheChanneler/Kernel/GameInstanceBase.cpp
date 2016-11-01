@@ -11,12 +11,12 @@
 
 
 UGameInstanceBase::UGameInstanceBase() :
-	Analytics(nullptr)
+	Analytics(nullptr), CurrentScreenResolution(1280, 720)
 {}
 
 void UGameInstanceBase::Init()
 {
-	UpdateScreenResolution();
+	LoadAvailableScreenResolutions();
 	Analytics = NewObject<UAnalytics>(this, UAnalytics::StaticClass());
 	Super::Init();
 	UChannelerUtils::SetGameInstance(this);
@@ -46,7 +46,7 @@ void UGameInstanceBase::EndLoadingScreen()
 
 }
 
-void UGameInstanceBase::UpdateScreenResolution()
+void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolution)
 {
 #if !WITH_EDITOR
 	if (GEngine != nullptr)
@@ -54,8 +54,13 @@ void UGameInstanceBase::UpdateScreenResolution()
 		UGameUserSettings* gameSettings = GEngine->GetGameUserSettings();
 		if (gameSettings != nullptr)
 		{
-			TArray<FIntPoint> availableResolutions;
-			bool resolutionQuery = UKismetSystemLibrary::GetSupportedFullscreenResolutions(availableResolutions);
+			LoadAvailableScreenResolutions();
+			int32 index = 0;
+			if (!AvailableScreenResolutions.Find(newScreenResolution, index))
+			{
+				UE_LOG(LogTemp, Error, TEXT("Requested screen resolution %d x %d is not available on this device."), newScreenResolution.X, newScreenResolution.Y);
+				return;
+			}
 
 			bool applySettings = false;
 
@@ -65,23 +70,62 @@ void UGameInstanceBase::UpdateScreenResolution()
 				gameSettings->SetFullscreenMode(EWindowMode::Fullscreen);
 				applySettings = true;
 			}
-			if (resolutionQuery)
+			FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
+			if (newScreenResolution.X != currentScreenRes.X || newScreenResolution.Y != currentScreenRes.Y)
 			{
-				FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
-				const FIntPoint& maxScreenRes = FIntPoint(1280, 720); //availableResolutions.Last();
-				if (maxScreenRes.X != currentScreenRes.X || maxScreenRes.Y != currentScreenRes.Y)
-				{
-					gameSettings->SetScreenResolution(maxScreenRes);
-					applySettings = true;
-				}
+				gameSettings->SetScreenResolution(newScreenResolution);
+				CurrentScreenResolution = newScreenResolution;
+				UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
+				applySettings = true;
 			}
+
 			if (applySettings)
 				gameSettings->ApplySettings(true);
-			//gameSettings->SaveSettings();
+			gameSettings->SaveSettings();
 		}
 	}
 #endif
 }
+
+void UGameInstanceBase::LoadAvailableScreenResolutions()
+{
+	if (AvailableScreenResolutions.Num() == 0)
+	{
+		UKismetSystemLibrary::GetSupportedFullscreenResolutions(AvailableScreenResolutions);
+
+		for (int32 i = 0; i < AvailableScreenResolutions.Num(); i++)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%d x %d"), AvailableScreenResolutions[i].X, AvailableScreenResolutions[i].Y);
+		}
+	}
+}
+
+void UGameInstanceBase::ReinforceScreenResolution()
+{
+	SetNewScreenResolution(CurrentScreenResolution);
+}
+
+int32 UGameInstanceBase::GetValidDefaultScreenResolution() const
+{
+	int32 first1200index = -1;
+	for (int32 i = AvailableScreenResolutions.Num() - 1; i >= 0; --i)
+	{
+		if (AvailableScreenResolutions[i].X < 1300 && AvailableScreenResolutions[i].X >= 1000)
+		{
+			if(first1200index == -1)
+				first1200index = i;
+
+			float aspectRatio = ((float)AvailableScreenResolutions[i].X) / AvailableScreenResolutions[i].Y;
+			if (FMath::IsNearlyEqual(aspectRatio, 1.77f, 0.01f))
+			{
+				return i;
+			}
+		}
+	}
+
+	return (first1200index >= 0) ? first1200index : (AvailableScreenResolutions.Num() - 1);
+}
+
 
 void UGameInstanceBase::LoadAudioChannels()
 {
