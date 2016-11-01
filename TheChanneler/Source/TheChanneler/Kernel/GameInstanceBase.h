@@ -61,7 +61,9 @@ public:
 
 	virtual void Init() override;
 
+	UFUNCTION()
 	void BeginLoadingScreen();
+	UFUNCTION()
 	void EndLoadingScreen();
 
 protected:
