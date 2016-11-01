@@ -360,6 +360,9 @@ protected:
 	virtual void TurnAtRate(float Rate) override;
 	virtual void LookUpAtRate(float Rate) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Screen Resolution")
+	void UpdateScreenResolutionRelatedProperties(int32 newWidth, int32 newHeight);
+
 private:
 	void SkipLevelAction();
 	void ResetBlinkDetection();

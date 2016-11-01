@@ -133,7 +133,7 @@ void ATheChannelerGameMode::LaunchCalibration(const FString& OutStringData)
 			if (gameInstance != nullptr)
 			{
 				UGameInstanceBase* gameInstanceBase = Cast<UGameInstanceBase>(gameInstance);
-				gameInstanceBase->UpdateScreenResolution();
+				gameInstanceBase->ReinforceScreenResolution();
 			}
 		}
 
