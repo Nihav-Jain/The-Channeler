@@ -37,12 +37,10 @@ void AChannelerEyeXPlayerController::Tick(float DeltaSeconds)
 
 	if (WasGamepadInputJustDetected())
 	{
-		ClientMessage("Gamepad was activated");
 		mLastKnownInputDevice = EInputDevices::ID_Gamepad;
 	}
 	else if (WasKMBInputJustDetected())
 	{
-		ClientMessage("Keyboard/Mouse was activated");
 		mLastKnownInputDevice = EInputDevices::ID_KBM;
 	}
 }
