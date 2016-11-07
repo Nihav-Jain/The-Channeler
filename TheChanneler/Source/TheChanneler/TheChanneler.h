@@ -5,7 +5,6 @@
 #include "Engine.h"
 
 #if BUILD_SHIPPING
-	#define CHANNELER_SHIP_TEST 0
 	#define CHANNELER_SHIP 1
 #else
 	//#define CHANNELER_SHIP_TEST 1
