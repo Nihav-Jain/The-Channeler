@@ -18,8 +18,10 @@ void UGameInstanceBase::Init()
 {
 	LoadAvailableScreenResolutions();
 	Analytics = NewObject<UAnalytics>(this, UAnalytics::StaticClass());
+	
 	Super::Init();
 	UChannelerUtils::SetGameInstance(this);
+
 #if !WITH_EDITOR
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UGameInstanceBase::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UGameInstanceBase::EndLoadingScreen);
@@ -56,13 +58,23 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 		{
 			LoadAvailableScreenResolutions();
 			int32 index = 0;
+
+			bool applySettings = false;
 			if (!AvailableScreenResolutions.Find(newScreenResolution, index))
 			{
 				UE_LOG(LogTemp, Error, TEXT("Requested screen resolution %d x %d is not available on this device."), newScreenResolution.X, newScreenResolution.Y);
-				return;
 			}
-
-			bool applySettings = false;
+			else
+			{
+				FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
+				if (newScreenResolution.X != currentScreenRes.X || newScreenResolution.Y != currentScreenRes.Y)
+				{
+					gameSettings->SetScreenResolution(newScreenResolution);
+					CurrentScreenResolution = newScreenResolution;
+					UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
+					applySettings = true;
+				}
+			}
 
 			if (gameSettings->GetFullscreenMode() != EWindowMode::Fullscreen)
 			{
@@ -70,17 +82,12 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 				gameSettings->SetFullscreenMode(EWindowMode::Fullscreen);
 				applySettings = true;
 			}
-			FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
-			if (newScreenResolution.X != currentScreenRes.X || newScreenResolution.Y != currentScreenRes.Y)
-			{
-				gameSettings->SetScreenResolution(newScreenResolution);
-				CurrentScreenResolution = newScreenResolution;
-				UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
-				applySettings = true;
-			}
 
 			if (applySettings)
+			{
 				gameSettings->ApplySettings(true);
+			}
+
 			gameSettings->SaveSettings();
 		}
 	}
@@ -107,23 +114,19 @@ void UGameInstanceBase::ReinforceScreenResolution()
 
 int32 UGameInstanceBase::GetValidDefaultScreenResolution() const
 {
-	int32 first1200index = -1;
+	FDisplayMetrics displayMetrics;
+	FDisplayMetrics::GetDisplayMetrics(displayMetrics);
+	
 	for (int32 i = AvailableScreenResolutions.Num() - 1; i >= 0; --i)
 	{
-		if (AvailableScreenResolutions[i].X < 1300 && AvailableScreenResolutions[i].X >= 1000)
+		if (AvailableScreenResolutions[i].X == displayMetrics.PrimaryDisplayWidth 
+			&& AvailableScreenResolutions[i].Y == displayMetrics.PrimaryDisplayHeight)
 		{
-			if(first1200index == -1)
-				first1200index = i;
-
-			float aspectRatio = ((float)AvailableScreenResolutions[i].X) / AvailableScreenResolutions[i].Y;
-			if (FMath::IsNearlyEqual(aspectRatio, 1.77f, 0.01f))
-			{
-				return i;
-			}
+			return i;
 		}
 	}
 
-	return (first1200index >= 0) ? first1200index : (AvailableScreenResolutions.Num() - 1);
+	return AvailableScreenResolutions.Num() - 1;
 }
 
 
