@@ -11,7 +11,7 @@
 
 
 UGameInstanceBase::UGameInstanceBase() :
-	Analytics(nullptr), CurrentScreenResolution(1280, 720)
+	Analytics(nullptr), CurrentScreenResolution(-1, -1)
 {}
 
 void UGameInstanceBase::Init()
@@ -22,7 +22,14 @@ void UGameInstanceBase::Init()
 	Super::Init();
 	UChannelerUtils::SetGameInstance(this);
 
-#if !WITH_EDITOR
+	if (AvailableScreenResolutions.Find(CurrentScreenResolution) == INDEX_NONE)
+	{
+		CurrentScreenResolution = GetValidDefaultScreenResolution();
+	}
+
+	SetNewScreenResolution(CurrentScreenResolution);
+
+#if BUILD_SHIPPING
 	FCoreUObjectDelegates::PreLoadMap.AddUObject(this, &UGameInstanceBase::BeginLoadingScreen);
 	FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UGameInstanceBase::EndLoadingScreen);
 	if (LoadingScreenClass) {
@@ -50,7 +57,6 @@ void UGameInstanceBase::EndLoadingScreen()
 
 void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolution)
 {
-#if !WITH_EDITOR
 	if (GEngine != nullptr)
 	{
 		UGameUserSettings* gameSettings = GEngine->GetGameUserSettings();
@@ -69,13 +75,23 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 				FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
 				if (newScreenResolution.X != currentScreenRes.X || newScreenResolution.Y != currentScreenRes.Y)
 				{
+					
+#if !WITH_EDITOR
 					gameSettings->SetScreenResolution(newScreenResolution);
+#endif
+
 					CurrentScreenResolution = newScreenResolution;
+					bool isScreenResolutionValid = AvailableScreenResolutions.Find(CurrentScreenResolution, CurrentScreenResolutionIndex);
+					if (!isScreenResolutionValid)
+					{
+						UE_LOG(LogTemp, Error, TEXT("ERROR - New screen resolution not present in list of available resolutions."));
+					}
 					UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
 					applySettings = true;
 				}
 			}
 
+#if !WITH_EDITOR
 			if (gameSettings->GetFullscreenMode() != EWindowMode::Fullscreen)
 			{
 				gameSettings->SetWindowPosition(-1, -1);
@@ -89,9 +105,21 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 			}
 
 			gameSettings->SaveSettings();
+#endif
 		}
 	}
-#endif
+}
+
+void UGameInstanceBase::SetNewScreenResolutionByIndex(int32 newScreenResolutionIndex)
+{
+	if (newScreenResolutionIndex >= 0 && newScreenResolutionIndex < AvailableScreenResolutions.Num())
+	{
+		SetNewScreenResolution(AvailableScreenResolutions[newScreenResolutionIndex]);
+	}
+	else
+	{
+		SetNewScreenResolution(GetValidDefaultScreenResolution());
+	}
 }
 
 void UGameInstanceBase::LoadAvailableScreenResolutions()
@@ -103,6 +131,7 @@ void UGameInstanceBase::LoadAvailableScreenResolutions()
 		for (int32 i = 0; i < AvailableScreenResolutions.Num(); i++)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%d x %d"), AvailableScreenResolutions[i].X, AvailableScreenResolutions[i].Y);
+			VerbalSupportedScreenResolutions.Add(FString::Printf(TEXT("%dx%d"), AvailableScreenResolutions[i].X, AvailableScreenResolutions[i].Y));
 		}
 	}
 }
@@ -112,21 +141,21 @@ void UGameInstanceBase::ReinforceScreenResolution()
 	SetNewScreenResolution(CurrentScreenResolution);
 }
 
-int32 UGameInstanceBase::GetValidDefaultScreenResolution() const
+FIntPoint UGameInstanceBase::GetValidDefaultScreenResolution() const
 {
 	FDisplayMetrics displayMetrics;
 	FDisplayMetrics::GetDisplayMetrics(displayMetrics);
 	
-	for (int32 i = AvailableScreenResolutions.Num() - 1; i >= 0; --i)
-	{
-		if (AvailableScreenResolutions[i].X == displayMetrics.PrimaryDisplayWidth 
-			&& AvailableScreenResolutions[i].Y == displayMetrics.PrimaryDisplayHeight)
-		{
-			return i;
-		}
-	}
+	//for (int32 i = AvailableScreenResolutions.Num() - 1; i >= 0; --i)
+	//{
+	//	if (AvailableScreenResolutions[i].X == displayMetrics.PrimaryDisplayWidth 
+	//		&& AvailableScreenResolutions[i].Y == displayMetrics.PrimaryDisplayHeight)
+	//	{
+	//		return i;
+	//	}
+	//}
 
-	return AvailableScreenResolutions.Num() - 1;
+	return FIntPoint(displayMetrics.PrimaryDisplayWidth, displayMetrics.PrimaryDisplayHeight);
 }
 
 

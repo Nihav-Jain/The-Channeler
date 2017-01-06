@@ -5,6 +5,7 @@
 #include "../Storytelling/StoryNode.h"
 #include "../Storytelling/StoryDialogueFreezeCamNode.h"
 #include "../Utils/ChannelerUtils.h"
+#include "GameInstanceBase.h"
 #include "ChannelerEyeXPlayerController.h"
 
 AChannelerEyeXPlayerController::AChannelerEyeXPlayerController() :
@@ -107,6 +108,18 @@ void AChannelerEyeXPlayerController::JumpToStoryNode(FString nodeName)
 	if (nodeToJump != nullptr)
 		mStoryManager->SetCurrentNode(nodeToJump, true);
 }
+
+void AChannelerEyeXPlayerController::PrintScreenResolution()
+{
+	UGameUserSettings* gameSettings = GEngine->GetGameUserSettings();
+	if (gameSettings != nullptr)
+	{
+		FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, FString::Printf(TEXT("%d x %d"), currentScreenRes.X, currentScreenRes.Y));
+		UE_LOG(LogTemp, Warning, TEXT("%d x %d"), currentScreenRes.X, currentScreenRes.Y);
+	}
+}
+
 
 EInputDevices AChannelerEyeXPlayerController::GetLastKnownInputDevice() const
 {
