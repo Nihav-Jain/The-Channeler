@@ -23,15 +23,15 @@ public:
 	UGameInstanceBase();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
-		TArray<UChannelerAudioComponent*> ChannelerMusicAudioComponentArray;
+	TArray<UChannelerAudioComponent*> ChannelerMusicAudioComponentArray;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
-		TArray<UChannelerAudioComponent*> ChannelerVoiceAudioComponentArray;
+	TArray<UChannelerAudioComponent*> ChannelerVoiceAudioComponentArray;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
-		TArray<UChannelerAudioComponent*> ChannelerSFXAudioComponentArray;
+	TArray<UChannelerAudioComponent*> ChannelerSFXAudioComponentArray;
 
 	/** The user's profile name as a string */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = User)
@@ -53,8 +53,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 	void SetNewScreenResolution(const FIntPoint& newScreenResolution);
 
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+	void SetNewScreenResolutionByIndex(int32 newScreenResolutionIndex);
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
 	TArray<FIntPoint> AvailableScreenResolutions;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
+	TArray<FString> VerbalSupportedScreenResolutions;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Settings")
+	int32 CurrentScreenResolutionIndex;
 
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 	void ReinforceScreenResolution();
@@ -67,11 +76,10 @@ public:
 	void EndLoadingScreen();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Settings")
 	FIntPoint CurrentScreenResolution;
 
-	UFUNCTION(BlueprintCallable, Category = "Settings")
-	int32 GetValidDefaultScreenResolution() const;
+	FIntPoint GetValidDefaultScreenResolution() const;
 
 private:
 	UFUNCTION()
