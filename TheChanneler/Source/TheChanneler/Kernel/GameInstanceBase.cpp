@@ -22,7 +22,7 @@ void UGameInstanceBase::Init()
 	Super::Init();
 	UChannelerUtils::SetGameInstance(this);
 
-	if (!AvailableScreenResolutions.Find(CurrentScreenResolution))
+	if (AvailableScreenResolutions.Find(CurrentScreenResolution) == INDEX_NONE)
 	{
 		CurrentScreenResolution = GetValidDefaultScreenResolution();
 	}
