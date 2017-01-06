@@ -47,6 +47,9 @@ public:
 	UFUNCTION(Exec, BlueprintCallable, Category = "Storytelling")
 	void JumpToStoryNode(FString nodeName);
 
+	UFUNCTION(Exec, BlueprintCallable, Category = "Settings")
+	void PrintScreenResolution();
+	
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	EInputDevices GetLastKnownInputDevice() const;
 
