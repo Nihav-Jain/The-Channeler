@@ -21,5 +21,6 @@ void AChannelerPlayerController::BeginPlay()
 void AChannelerPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	InputDeviceManager->Tick();
+	if(InputDeviceManager != nullptr)
+		InputDeviceManager->Tick();
 }

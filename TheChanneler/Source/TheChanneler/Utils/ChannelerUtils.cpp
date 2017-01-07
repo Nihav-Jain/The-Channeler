@@ -90,5 +90,6 @@ UInputDeviceManager* UChannelerUtils::GetInputDeviceManager()
 			}
 		}
 	}
+	UE_LOG(LogTemp, Error, TEXT("InputDeviceManager is null."));
 	return nullptr;
 }
