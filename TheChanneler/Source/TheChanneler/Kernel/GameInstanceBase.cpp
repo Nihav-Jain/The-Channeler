@@ -73,6 +73,7 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 			else
 			{
 				FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
+				CurrentScreenResolutionIndex = index;
 				if (newScreenResolution.X != currentScreenRes.X || newScreenResolution.Y != currentScreenRes.Y)
 				{
 					
@@ -81,11 +82,6 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 #endif
 
 					CurrentScreenResolution = newScreenResolution;
-					bool isScreenResolutionValid = AvailableScreenResolutions.Find(CurrentScreenResolution, CurrentScreenResolutionIndex);
-					if (!isScreenResolutionValid)
-					{
-						UE_LOG(LogTemp, Error, TEXT("ERROR - New screen resolution not present in list of available resolutions."));
-					}
 					UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
 					applySettings = true;
 				}
