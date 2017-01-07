@@ -80,6 +80,8 @@ void UGameInstanceBase::SetNewScreenResolution(const FIntPoint& newScreenResolut
 #if !WITH_EDITOR
 					gameSettings->SetScreenResolution(newScreenResolution);
 #endif
+					if (OnScreenResolutionChanged.IsBound())
+						OnScreenResolutionChanged.Broadcast(newScreenResolution.X, newScreenResolution.Y);
 
 					CurrentScreenResolution = newScreenResolution;
 					UE_LOG(LogTemp, Warning, TEXT("Setting new screen resolution = %d x %d"), newScreenResolution.X, newScreenResolution.Y);
