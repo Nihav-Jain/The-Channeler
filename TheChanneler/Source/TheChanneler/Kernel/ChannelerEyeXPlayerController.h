@@ -8,16 +8,6 @@
 class UStoryManager;
 
 /**
- * Enumeration for determining the device which input was last known to come from.
- */
-UENUM(BlueprintType)
-enum class EInputDevices : uint8
-{
-	ID_KBM			UMETA(DisplayName = "Keyboard/Mouse"),
-	ID_Gamepad		UMETA(DisplayName = "Gamepad")
-};
-
-/**
  * 
  */
 UCLASS(BlueprintType, Blueprintable)
@@ -49,18 +39,11 @@ public:
 
 	UFUNCTION(Exec, BlueprintCallable, Category = "Settings")
 	void PrintScreenResolution();
-	
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	EInputDevices GetLastKnownInputDevice() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Input")
-	EInputDevices GetPreviousFramesLastKnownInputDevice() const;
+	UPROPERTY(BlueprintReadOnly, Category = "Input")
+	class UInputDeviceManager* InputDeviceManager;
 
 private:
 	class UChannelerCheatManager* mCheatManager;
 	UStoryManager* mStoryManager;
-	EInputDevices mLastKnownInputDevice;
-	EInputDevices mPreviousFramesLastKnownInputDevice;
-	bool WasKMBInputJustDetected() const;
-	bool WasGamepadInputJustDetected() const;
 };

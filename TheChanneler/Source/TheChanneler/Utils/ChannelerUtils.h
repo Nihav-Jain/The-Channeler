@@ -10,6 +10,7 @@
 
 class AChannelerCharacter;
 class AChannelerEyeXPlayerController;
+class UInputDeviceManager;
 
 /**
  * 
@@ -39,6 +40,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "ChannelerUtils")
 	static AChannelerEyeXPlayerController* GetChannelerPlayerController();
+
+	UFUNCTION(BlueprintCallable, Category = "ChannelerUtils")
+	static UInputDeviceManager* GetInputDeviceManager();
 
 private:
 	static void SetGameInstance(UGameInstanceBase* instance);
