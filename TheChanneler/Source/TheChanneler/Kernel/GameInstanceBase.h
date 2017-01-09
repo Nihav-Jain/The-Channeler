@@ -20,15 +20,18 @@ class THECHANNELER_API UGameInstanceBase : public UGameInstance
 
 public:
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnScreenResolutionChanged, int32, NewWidth, int32, NewHeight);
+
 	UGameInstanceBase();
+
+	UPROPERTY(BlueprintAssignable, Category = "Settings")
+	FOnScreenResolutionChanged OnScreenResolutionChanged;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
 	TArray<UChannelerAudioComponent*> ChannelerMusicAudioComponentArray;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
 	TArray<UChannelerAudioComponent*> ChannelerVoiceAudioComponentArray;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AudioComponent")
 	TArray<UChannelerAudioComponent*> ChannelerSFXAudioComponentArray;

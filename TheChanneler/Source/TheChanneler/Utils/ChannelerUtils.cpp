@@ -4,6 +4,8 @@
 #include "../Characters/ChannelerCharacter.h"
 #include "../Kernel/ChannelerEyeXPlayerController.h"
 #include "ChannelerUtils.h"
+#include "../Input/InputDeviceManager.h"
+#include "../Kernel/ChannelerPlayerController.h"
 
 UGameInstanceBase* UChannelerUtils::GameInstanceBase;
 UStoryManager* UChannelerUtils::StoryManager;
@@ -64,4 +66,30 @@ AChannelerEyeXPlayerController* UChannelerUtils::GetChannelerPlayerController()
 void UChannelerUtils::SetChannelerPlayerController(AChannelerEyeXPlayerController* playerController)
 {
 	ChannelerPlayerController = playerController;
+}
+
+UInputDeviceManager* UChannelerUtils::GetInputDeviceManager()
+{
+	if (GEngine != nullptr)
+	{
+		if (GEngine->GetWorld() != nullptr)
+		{
+			APlayerController* controller = GEngine->GetWorld()->GetFirstPlayerController();
+			AChannelerPlayerController* channelerController = Cast<AChannelerPlayerController>(controller);
+			if (channelerController == nullptr)
+			{
+				AChannelerEyeXPlayerController* channelerEyeXController = Cast<AChannelerEyeXPlayerController>(controller);
+				if (channelerEyeXController != nullptr)
+				{
+					return channelerEyeXController->InputDeviceManager;
+				}
+			}
+			else
+			{
+				return channelerController->InputDeviceManager;
+			}
+		}
+	}
+	UE_LOG(LogTemp, Error, TEXT("InputDeviceManager is null."));
+	return nullptr;
 }
