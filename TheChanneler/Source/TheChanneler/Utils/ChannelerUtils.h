@@ -48,13 +48,16 @@ private:
 	static void SetGameInstance(UGameInstanceBase* instance);
 	static void SetChanneler(AChannelerCharacter* channeler);
 	static void SetChannelerPlayerController(AChannelerEyeXPlayerController* channeler);
+	static void SetInputDeviceManager(UInputDeviceManager* inputDeviceManager);
 
 	static UGameInstanceBase* GameInstanceBase;
 	static UStoryManager* StoryManager;
 	static AChannelerCharacter* ChannelerCharacter;
 	static AChannelerEyeXPlayerController* ChannelerPlayerController;
+	static UInputDeviceManager* InputDeviceManager;
 
 	friend class UGameInstanceBase;
 	friend class AChannelerCharacter;
 	friend class AChannelerEyeXPlayerController;
+	friend class AChannelerPlayerController;
 };

@@ -9,17 +9,25 @@
 #include "ChannelerEyeXPlayerController.h"
 #include "../Input/InputDeviceManager.h"
 
-AChannelerEyeXPlayerController::AChannelerEyeXPlayerController() :
-	mCheatManager(nullptr)
+AChannelerEyeXPlayerController::AChannelerEyeXPlayerController()
+	: mCheatManager(nullptr)
+	, InputDeviceManager(nullptr)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	UChannelerUtils::SetChannelerPlayerController(this);
 	InputDeviceManager = NewObject<UInputDeviceManager>(this, UInputDeviceManager::StaticClass(), TEXT("InputDeviceManager"));
+	UChannelerUtils::SetInputDeviceManager(InputDeviceManager);
 }
 
 void AChannelerEyeXPlayerController::BeginPlay()
 {
+	if (InputDeviceManager == nullptr)
+	{
+		InputDeviceManager = NewObject<UInputDeviceManager>(this, UInputDeviceManager::StaticClass(), TEXT("InputDeviceManager"));
+		UChannelerUtils::SetInputDeviceManager(InputDeviceManager);
+	}
+
 	Super::BeginPlay();
 
 	if (mCheatManager == nullptr)
