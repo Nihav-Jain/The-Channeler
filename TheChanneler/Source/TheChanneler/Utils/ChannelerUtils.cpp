@@ -11,6 +11,7 @@ UGameInstanceBase* UChannelerUtils::GameInstanceBase;
 UStoryManager* UChannelerUtils::StoryManager;
 AChannelerCharacter* UChannelerUtils::ChannelerCharacter;
 AChannelerEyeXPlayerController* UChannelerUtils::ChannelerPlayerController;
+UInputDeviceManager* UChannelerUtils::InputDeviceManager;
 
 UChannelerUtils::~UChannelerUtils()
 {
@@ -18,6 +19,7 @@ UChannelerUtils::~UChannelerUtils()
 	StoryManager = nullptr;
 	ChannelerCharacter = nullptr;
 	ChannelerPlayerController = nullptr;
+	InputDeviceManager = nullptr;
 }
 
 UGameInstanceBase* UChannelerUtils::GetChannelerGameInstance()
@@ -70,26 +72,11 @@ void UChannelerUtils::SetChannelerPlayerController(AChannelerEyeXPlayerControlle
 
 UInputDeviceManager* UChannelerUtils::GetInputDeviceManager()
 {
-	if (GEngine != nullptr)
-	{
-		if (GEngine->GetWorld() != nullptr)
-		{
-			APlayerController* controller = GEngine->GetWorld()->GetFirstPlayerController();
-			AChannelerPlayerController* channelerController = Cast<AChannelerPlayerController>(controller);
-			if (channelerController == nullptr)
-			{
-				AChannelerEyeXPlayerController* channelerEyeXController = Cast<AChannelerEyeXPlayerController>(controller);
-				if (channelerEyeXController != nullptr)
-				{
-					return channelerEyeXController->InputDeviceManager;
-				}
-			}
-			else
-			{
-				return channelerController->InputDeviceManager;
-			}
-		}
-	}
-	UE_LOG(LogTemp, Error, TEXT("InputDeviceManager is null."));
-	return nullptr;
+	return InputDeviceManager;
 }
+
+void UChannelerUtils::SetInputDeviceManager(UInputDeviceManager* inputDeviceManager)
+{
+	InputDeviceManager = inputDeviceManager;
+}
+

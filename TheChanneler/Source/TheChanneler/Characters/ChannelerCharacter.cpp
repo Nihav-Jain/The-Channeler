@@ -799,12 +799,12 @@ void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeG
 
 	if (FMath::Abs(deltaAngle.X) > ExtendedScreenFilterAngle.X)
 	{
-		AddControllerYawInput(deltaAngle.X / inputYawScale);
+		AddControllerYawInput((deltaAngle.X * ExtendedFOVTurnRate * 2) / inputYawScale);
 		mFOVCameraRotation.Yaw += deltaAngle.X;
 	}
 	if (FMath::Abs(deltaAngle.Y) > ExtendedScreenFilterAngle.Y)
 	{
-		AddControllerPitchInput(deltaAngle.Y / inputPitchScale);
+		AddControllerPitchInput((deltaAngle.Y * ExtendedFOVTurnRate * 2) / inputPitchScale);
 		mFOVCameraRotation.Pitch += deltaAngle.Y;
 	}
 }
