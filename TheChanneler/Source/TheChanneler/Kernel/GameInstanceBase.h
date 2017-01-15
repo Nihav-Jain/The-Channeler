@@ -78,6 +78,12 @@ public:
 	UFUNCTION()
 	void EndLoadingScreen();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
+	void LoadSettingsIntoChannelerController();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Settings")
+	void SaveSettingsFromChannelerController();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Settings")
 	FIntPoint CurrentScreenResolution;
