@@ -38,23 +38,16 @@ void AChannelerCharacter::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 #endif
 
 AChannelerCharacter::AChannelerCharacter() :
-	CheckForClosedEye(false), MinEyeClosedDuration(1.0f),
-	bIsLeftEyeClosed(false), bIsRightEyeClosed(false),
-	mEyeX(nullptr), UserPresence(EEyeXUserPresence::Unknown),
-	mLeftEyeClosedDuration(0.0f), mRightEyeClosedDuration(0.0f),
-	mLastClosedEye(EEyeToDetect::EYE_NONE), mLastTriggeredEyeEvent(EEyeToDetect::EYE_NONE),
+	mEyeX(nullptr),
 	ActiveCameraComponent(nullptr), EagleEyeDurationInSeconds(0.0f),
-	bDidBlink(false), MinBlinkDuration(0.1f), MaxBlinkDuration(0.5f), mBlinkCount(0), BlinkStreakInterval(0.5),
-	mBlinkTimer(0), bBlinkPossible(false), bMarkedForReset(false), BlinkErrorRange(0.2f), mBlinkErrorTimer(0),
-	MinWinkDuration(0.25f), MaxWinkDuration(0.5f), bShouldEagleEyeBeDeactivated(false),
+	bShouldEagleEyeBeDeactivated(false),
 	bMovementEnabled(true), bLookEnabled(true), Sensitivity(1.0f), bIsInPuzzle(false),
 	bIsEagleEyeEnabled(false), bIsRightEagleEyeActive(false), bIsLeftEagleEyeActive(false),
 	SkipInputBindingPrefix("Skip_"), mKeyMappings(), SkipLevel(),
-	ExtendedFOVMargin(), ExtendedFOVEnabled(true), ExtendedFOVMode(EExtendedFOVMode::EllipticalExtendedScreen), ExtendedFOVTurnRate(1.0f), GradientSpeed(true),
+	ExtendedFOVMargin(), ExtendedFOVMode(EExtendedFOVMode::EllipticalExtendedScreen), GradientSpeed(true),
 	mViewportCenter(1920 / 2, 1080 / 2), mViewportSize(1920, 1080), MouseVsFov(true), mMouseWasMoved(false), ExtendedScreenMaxAngle(30, 30),
 	Easing(true), EasingResponsiveness(0.25f), mFOVCameraRotation(0, 0, 0), ExtendedScreenFilterAngle(1.0f, 1.0f),
-	mGameMode(nullptr), mGhostCamActor(nullptr),
-	mFOVEllipseAxes(0, 0), NoFOVEllipseAxesRatio(0.1f, 0.1f)
+	mGhostCamActor(nullptr), mFOVEllipseAxes(0, 0), NoFOVEllipseAxesRatio(0.1f, 0.1f)
 {}
 
 void AChannelerCharacter::BeginPlay()
@@ -62,7 +55,6 @@ void AChannelerCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	mEyeX = &IEyeXPlugin::Get();
-	UserPresence = mEyeX->GetUserPresence();
 	ActiveCameraComponent = GetFirstPersonCameraComponent();
 
 	DisableEagleEye();
@@ -88,20 +80,6 @@ void AChannelerCharacter::BeginPlay()
 	mFOVEllipseAxesSquared = FVector2D(FMath::Square(mFOVEllipseAxes.X), FMath::Square(mFOVEllipseAxes.Y));
 	mFOVOuterEllipseAxes = FVector2D(mViewportSize.X / FMath::Sqrt(2), mViewportSize.Y / FMath::Sqrt(2));
 	mFOVOuterEllipseAxesSquared = FVector2D(FMath::Square(mFOVOuterEllipseAxes.X), FMath::Square(mFOVOuterEllipseAxes.Y));
-
-	AGameMode* gameMode = UGameplayStatics::GetGameMode(this);
-	if (gameMode == nullptr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("game mode is null"));
-	}
-	else
-	{
-		mGameMode = Cast<ATheChannelerGameMode>(gameMode);
-		if (mGameMode == nullptr)
-		{
-			UE_LOG(LogTemp, Error, TEXT("channeler game mode is null"));
-		}
-	}
 }
 
 void AChannelerCharacter::Tick(float deltaSeconds)
@@ -126,8 +104,6 @@ void AChannelerCharacter::Tick(float deltaSeconds)
 	{
 		EagleEyeDurationInSeconds = 0.0f;
 	}
-
-	BlinkWinkTick(deltaSeconds);
 }
 
 void AChannelerCharacter::EnableMovement()
@@ -168,11 +144,6 @@ FRotator AChannelerCharacter::GetCharacterViewRotation() const
 	return GetViewRotation();
 }
 
-bool AChannelerCharacter::IsLeftEyeClosed() const
-{
-	return bIsLeftEyeClosed;
-}
-
 void AChannelerCharacter::MouseSensitivity(float sensitivity)
 {
 	Sensitivity = sensitivity;
@@ -180,32 +151,6 @@ void AChannelerCharacter::MouseSensitivity(float sensitivity)
 	//BaseLookUpRate = Sensitivity;
 	//GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Red, FString::Printf(TEXT("BaseLookUpRate: %f"), BaseLookUpRate));
 
-}
-
-bool AChannelerCharacter::IsRightEyeClosed() const
-{
-	return bIsRightEyeClosed;
-}
-
-bool AChannelerCharacter::DidUserBlink() const
-{
-	return bDidBlink;
-}
-
-int32 AChannelerCharacter::BlinkCount() const
-{
-	return mBlinkCount;
-}
-
-void AChannelerCharacter::ResetBlinkDetection()
-{
-	bBlinkPossible = false;
-	mBlinkTimer = 0;
-
-	mBlinkCount = 0;
-
-	bMarkedForReset = false;
-	mBlinkErrorTimer = 0;
 }
 
 void AChannelerCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
@@ -227,13 +172,6 @@ void AChannelerCharacter::SetupPlayerInputComponent(class UInputComponent* Input
 	InputComponent->BindAxis("TurnRate", this, &AChannelerCharacter::TurnAtRate);
 	InputComponent->BindAxis("LookUp", this, &AChannelerCharacter::AddControllerPitchInput);
 	InputComponent->BindAxis("LookUpRate", this, &AChannelerCharacter::LookUpAtRate);
-
-	/* Simulation */
-	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Pressed, this, &AChannelerCharacter::SimulateLeftEyeClosed);
-	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Pressed, this, &AChannelerCharacter::SimulateRightEyeClosed);
-
-	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Released, this, &AChannelerCharacter::SimulateLeftEyeOpen);
-	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Released, this, &AChannelerCharacter::SimulateRightEyeOpen);
 
 #if CHANNELER_SHIP_TEST
 
@@ -438,157 +376,6 @@ void AChannelerCharacter::DeactivateLeftEagleEye()
 	TurnOffEagleEye();
 }
 
-void AChannelerCharacter::BlinkWinkTick(float deltaSeconds)
-{
-	TEnumAsByte<EEyeXUserPresence::Type> currentUserPresence = mEyeX->GetUserPresence();
-
-	bool simulateEyeX = IsEyeXSimulating();
-	if (!simulateEyeX)
-	{
-		// check for user presence; if it has changed since last frame, trigger appropriate event
-		if (currentUserPresence != UserPresence)
-		{
-			UserPresence = currentUserPresence;
-			switch (currentUserPresence)
-			{
-			case EEyeXUserPresence::Unknown:		// intentional fall through
-			case EEyeXUserPresence::NotPresent:
-				if (LostUserPresenceEvent.IsBound())
-					LostUserPresenceEvent.Broadcast();
-				break;
-			case EEyeXUserPresence::Present:
-				if (GainedUserPresenceEvent.IsBound())
-					GainedUserPresenceEvent.Broadcast();
-				break;
-			}
-		}
-	}
-	else
-	{
-		currentUserPresence = EEyeXUserPresence::Present;
-	}
-
-	bDidBlink = false;
-
-	if (CheckForClosedEye && currentUserPresence == EEyeXUserPresence::Present)
-	{
-		FEyeXEyePosition currentEyePosition = mEyeX->GetEyePosition();
-
-		if (!simulateEyeX)
-		{
-			bIsLeftEyeClosed = !currentEyePosition.bIsLeftEyeValid;
-			bIsRightEyeClosed = !currentEyePosition.bIsRightEyeValid;
-		}
-
-		if (bMarkedForReset)
-			mBlinkErrorTimer += deltaSeconds;
-
-		// both eyes are open
-		if (!(bIsLeftEyeClosed || bIsRightEyeClosed))
-		{
-			/** Wink **/
-			// check for left eye wink
-			if (mLastClosedEye == EEyeToDetect::EYE_LEFT)
-			{
-				if (mLeftEyeClosedDuration >= MinWinkDuration && mLeftEyeClosedDuration <= MaxWinkDuration)
-				{
-					if (LeftEyeClosed.IsBound())
-						LeftEyeClosed.Broadcast();
-					mLeftEyeClosedDuration = 0;		// should ideally be mEyeClosedDuration = mEyeClosedDuration % MinEyeClosedDuration; but modulus for floats is not supported
-					mLastTriggeredEyeEvent = EEyeToDetect::EYE_LEFT;
-					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
-				}
-				else
-				{
-					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
-				}
-			}
-			// check for right eye wink
-			if (mLastClosedEye == EEyeToDetect::EYE_RIGHT)
-			{
-				if (mRightEyeClosedDuration >= MinWinkDuration && mRightEyeClosedDuration <= MaxWinkDuration)
-				{
-					if (RightEyeClosed.IsBound())
-						RightEyeClosed.Broadcast();
-					mRightEyeClosedDuration = 0;
-					mLastTriggeredEyeEvent = EEyeToDetect::EYE_RIGHT;
-					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
-				}
-				else
-				{
-					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
-				}
-			}
-
-			/** Both open **/
-			if (mLastClosedEye != EEyeToDetect::EYE_NONE && mLastTriggeredEyeEvent != EEyeToDetect::EYE_NONE)
-			{
-				if (BothEyeOpened.IsBound())
-					BothEyeOpened.Broadcast();
-				//UE_LOG(LogTemp, Warning, TEXT("Both eyes are open"));
-			}
-
-			mLastClosedEye = EEyeToDetect::EYE_NONE;
-			mLeftEyeClosedDuration = 0;
-			mRightEyeClosedDuration = 0;
-			mLastTriggeredEyeEvent = EEyeToDetect::EYE_NONE;
-
-			/** Blink **/
-			if (bBlinkPossible)
-			{
-				if (!bMarkedForReset || mBlinkErrorTimer <= BlinkErrorRange)
-				{
-					//mBlinkTimer += deltaSeconds; // debatable
-					if (mBlinkTimer >= MinBlinkDuration && mBlinkTimer <= MaxBlinkDuration)
-					{
-						//UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
-						bDidBlink = true;
-						mBlinkCount++;
-						if (UserBlinked.IsBound())
-							UserBlinked.Broadcast();
-					}
-				}
-				ResetBlinkDetection();
-			}
-		}
-		// left eye is closed, right eye is open
-		else if (bIsLeftEyeClosed && !bIsRightEyeClosed)
-		{
-			mLeftEyeClosedDuration += deltaSeconds;
-			mRightEyeClosedDuration = 0;
-			mLastClosedEye = EEyeToDetect::EYE_LEFT;
-
-			if (bBlinkPossible)
-			{
-				bMarkedForReset = true;
-			}
-		}
-		// left eye is open, right eye is closed
-		else if (!bIsLeftEyeClosed && bIsRightEyeClosed)
-		{
-			mLeftEyeClosedDuration = 0;
-			mRightEyeClosedDuration += deltaSeconds;
-			mLastClosedEye = EEyeToDetect::EYE_RIGHT;
-
-			if (bBlinkPossible)
-			{
-				bMarkedForReset = true;
-			}
-		}
-		// both eyes are closed
-		else
-		{
-			if (mLastClosedEye == EEyeToDetect::EYE_LEFT)
-				mLeftEyeClosedDuration += deltaSeconds;
-			else if (mLastClosedEye == EEyeToDetect::EYE_RIGHT)
-				mRightEyeClosedDuration += deltaSeconds;
-
-			bBlinkPossible = true;
-			mBlinkTimer += deltaSeconds;
-		}
-	}
-}
-
 bool AChannelerCharacter::IsInPuzzle() const
 {
 	return bIsInPuzzle;
@@ -607,7 +394,16 @@ void AChannelerCharacter::ExtendedFOV()
 	if (deviceStatus != EEyeXDeviceStatus::Tracking)
 		return;
 
-	if (!(bLookEnabled && ExtendedFOVEnabled && !IsEyeXSimulating()))
+	UWorld* world = GetWorld();
+	if (world == nullptr)
+		return;
+	APlayerController* controller = world->GetFirstPlayerController();
+	if (controller == nullptr)
+		return;
+	AChannelerEyeXPlayerController* channelerEyeXController = Cast<AChannelerEyeXPlayerController>(controller);
+	if (channelerEyeXController == nullptr)
+		return;
+	if (!(bLookEnabled && channelerEyeXController->ExtendedFOVEnabled && !channelerEyeXController->IsEyeXSimulating()))
 		return;
 
 	if (!MouseVsFov && mMouseWasMoved)
@@ -619,7 +415,7 @@ void AChannelerCharacter::ExtendedFOV()
 		FVector2D relativeGazePoint = FVector2D(gazePoint.Value.X - mViewportCenter.X, gazePoint.Value.Y - mViewportCenter.Y);
 		if (ExtendedFOVMode == EExtendedFOVMode::EllipticalExtendedScreen)
 		{
-			EllipticalExtendedScreenFOV(FVector2D(relativeGazePoint));
+			EllipticalExtendedScreenFOV(FVector2D(relativeGazePoint), channelerEyeXController->ExtendedFOVTurnRate);
 			return;
 		}
 
@@ -693,7 +489,7 @@ void AChannelerCharacter::ExtendedFOV()
 
 			if (ExtendedFOVMode == EExtendedFOVMode::InfiniteScreen)
 			{
-				InfiniteScreenFOV(relativeGazePoint, speedInterpolation);
+				InfiniteScreenFOV(relativeGazePoint, speedInterpolation, channelerEyeXController->ExtendedFOVTurnRate);
 			}
 			else if (ExtendedFOVMode == EExtendedFOVMode::ExtendedScreen)
 			{
@@ -709,10 +505,10 @@ void AChannelerCharacter::ExtendedFOV()
 	mMouseWasMoved = false;
 }
 
-void AChannelerCharacter::InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation)
+void AChannelerCharacter::InfiniteScreenFOV(const FVector2D& relativeGazePoint, const FVector2D& speedInterpolation, float turnRate)
 {
-	FVector2D fovSpeed = FVector2D(relativeGazePoint.X * ExtendedFOVTurnRate * speedInterpolation.X,
-		relativeGazePoint.Y * ExtendedFOVTurnRate * speedInterpolation.Y);
+	FVector2D fovSpeed = FVector2D(relativeGazePoint.X * turnRate * speedInterpolation.X,
+		relativeGazePoint.Y * turnRate * speedInterpolation.Y);
 
 	APlayerController* const playerController = GetWorld()->GetFirstPlayerController();
 
@@ -748,7 +544,7 @@ void AChannelerCharacter::ExtendedScreenFOV(const FVector2D& relativeGazePoint, 
 	}
 }
 
-void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeGazePoint)
+void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeGazePoint, float turnRate)
 {
 	// check if gaze point is inside the inner ellipse
 	FVector2D relativePoint = relativeGazePoint;
@@ -799,43 +595,14 @@ void AChannelerCharacter::EllipticalExtendedScreenFOV(const FVector2D& relativeG
 
 	if (FMath::Abs(deltaAngle.X) > ExtendedScreenFilterAngle.X)
 	{
-		AddControllerYawInput((deltaAngle.X * ExtendedFOVTurnRate * 2) / inputYawScale);
+		AddControllerYawInput((deltaAngle.X * turnRate * 2) / inputYawScale);
 		mFOVCameraRotation.Yaw += deltaAngle.X;
 	}
 	if (FMath::Abs(deltaAngle.Y) > ExtendedScreenFilterAngle.Y)
 	{
-		AddControllerPitchInput((deltaAngle.Y * ExtendedFOVTurnRate * 2) / inputPitchScale);
+		AddControllerPitchInput((deltaAngle.Y * turnRate * 2) / inputPitchScale);
 		mFOVCameraRotation.Pitch += deltaAngle.Y;
 	}
-}
-
-void AChannelerCharacter::SimulateLeftEyeClosed()
-{
-	if (IsEyeXSimulating())
-		bIsLeftEyeClosed = true;
-}
-
-void AChannelerCharacter::SimulateRightEyeClosed()
-{
-	if (IsEyeXSimulating())
-		bIsRightEyeClosed = true;
-}
-
-void AChannelerCharacter::SimulateLeftEyeOpen()
-{
-	if (IsEyeXSimulating())
-		bIsLeftEyeClosed = false;
-}
-
-void AChannelerCharacter::SimulateRightEyeOpen()
-{
-	if (IsEyeXSimulating())
-		bIsRightEyeClosed = false;
-}
-
-bool AChannelerCharacter::IsEyeXSimulating() const
-{
-	return (mGameMode != nullptr) ? mGameMode->IsEyeXSimulating() : false;
 }
 
 void AChannelerCharacter::UpdateScreenResolutionRelatedProperties(int32 newWidth, int32 newHeight)

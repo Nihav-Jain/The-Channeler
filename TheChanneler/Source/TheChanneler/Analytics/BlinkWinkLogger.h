@@ -104,7 +104,7 @@ private:
 
 	IFileHandle* mFileHandle;
 
-	class AChannelerCharacter* mCharacter;
+	class AChannelerEyeXPlayerController* mController;
 	UWorld* mWorld;
 
 	int32 mTotalBytes;
