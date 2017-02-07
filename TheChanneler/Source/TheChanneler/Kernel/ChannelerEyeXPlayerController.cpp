@@ -5,18 +5,56 @@
 #include "../Storytelling/StoryNode.h"
 #include "../Storytelling/StoryDialogueFreezeCamNode.h"
 #include "../Utils/ChannelerUtils.h"
+#include "GameInstanceBase.h"
 #include "ChannelerEyeXPlayerController.h"
+#include "../Input/InputDeviceManager.h"
+#include "../TheChannelerGameMode.h"
+#include "IEyeXPlugin.h"
 
-AChannelerEyeXPlayerController::AChannelerEyeXPlayerController() :
-	mCheatManager(nullptr), mLastKnownInputDevice(EInputDevices::ID_KBM), mPreviousFramesLastKnownInputDevice(mLastKnownInputDevice)
+AChannelerEyeXPlayerController::AChannelerEyeXPlayerController()
+	: mCheatManager(nullptr)
+	, InputDeviceManager(nullptr)
+	, CheckForClosedEye(false), MinEyeClosedDuration(1.0f)
+	, bIsLeftEyeClosed(false), bIsRightEyeClosed(false)
+	, mEyeX(nullptr), UserPresence(EEyeXUserPresence::Unknown)
+	, mLeftEyeClosedDuration(0.0f), mRightEyeClosedDuration(0.0f)
+	, mLastClosedEye(EEyeToDetect::EYE_NONE), mLastTriggeredEyeEvent(EEyeToDetect::EYE_NONE)
+	, bDidBlink(false), MinBlinkDuration(0.1f), MaxBlinkDuration(0.5f), mBlinkCount(0), BlinkStreakInterval(0.5)
+	, mBlinkTimer(0), bBlinkPossible(false), bMarkedForReset(false), BlinkErrorRange(0.2f), mBlinkErrorTimer(0)
+	, MinWinkDuration(0.25f), MaxWinkDuration(0.5f)
+	, ExtendedFOVEnabled(true), ExtendedFOVTurnRate(1.0f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	UChannelerUtils::SetChannelerPlayerController(this);
+	InputDeviceManager = NewObject<UInputDeviceManager>(this, UInputDeviceManager::StaticClass(), TEXT("InputDeviceManager"));
+	UChannelerUtils::SetInputDeviceManager(InputDeviceManager);
 }
 
 void AChannelerEyeXPlayerController::BeginPlay()
 {
+	if (GetWorld() != nullptr)
+	{
+		if (GetWorld()->GetGameInstance() != nullptr)
+		{
+			UGameInstanceBase* gameInstance = Cast<UGameInstanceBase>(GetWorld()->GetGameInstance());
+			if (gameInstance != nullptr)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("LoadSettingsIntoChannelerController()"));
+				gameInstance->LoadSettingsIntoChannelerController();
+			}
+		}
+	}
+
+	mEyeX = &IEyeXPlugin::Get();
+	UserPresence = mEyeX->GetUserPresence();
+	
+	if (InputDeviceManager == nullptr)
+	{
+		InputDeviceManager = NewObject<UInputDeviceManager>(this, UInputDeviceManager::StaticClass(), TEXT("InputDeviceManager"));
+		UChannelerUtils::SetInputDeviceManager(InputDeviceManager);
+	}
+
 	Super::BeginPlay();
 
 	if (mCheatManager == nullptr)
@@ -27,22 +65,251 @@ void AChannelerEyeXPlayerController::BeginPlay()
 
 	SetActorTickEnabled(true);
 	EnableInput(this);
+
+	AGameMode* gameMode = UGameplayStatics::GetGameMode(this);
+	if (gameMode == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("game mode is null"));
+	}
+	else
+	{
+		mGameMode = Cast<ATheChannelerGameMode>(gameMode);
+		if (mGameMode == nullptr)
+		{
+			UE_LOG(LogTemp, Error, TEXT("channeler game mode is null"));
+		}
+	}
 }
 
 void AChannelerEyeXPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	InputDeviceManager->Tick();
+	BlinkWinkTick(DeltaSeconds);
+}
 
-	mPreviousFramesLastKnownInputDevice = mLastKnownInputDevice;
+void AChannelerEyeXPlayerController::BlinkWinkTick(float deltaSeconds)
+{
+	TEnumAsByte<EEyeXUserPresence::Type> currentUserPresence = mEyeX->GetUserPresence();
 
-	if (WasGamepadInputJustDetected())
+	bool simulateEyeX = IsEyeXSimulating();
+	if (!simulateEyeX)
 	{
-		mLastKnownInputDevice = EInputDevices::ID_Gamepad;
+		// check for user presence; if it has changed since last frame, trigger appropriate event
+		if (currentUserPresence != UserPresence)
+		{
+			UserPresence = currentUserPresence;
+			switch (currentUserPresence)
+			{
+			case EEyeXUserPresence::Unknown:		// intentional fall through
+			case EEyeXUserPresence::NotPresent:
+				if (LostUserPresenceEvent.IsBound())
+					LostUserPresenceEvent.Broadcast();
+				break;
+			case EEyeXUserPresence::Present:
+				if (GainedUserPresenceEvent.IsBound())
+					GainedUserPresenceEvent.Broadcast();
+				break;
+			}
+		}
 	}
-	else if (WasKMBInputJustDetected())
+	else
 	{
-		mLastKnownInputDevice = EInputDevices::ID_KBM;
+		currentUserPresence = EEyeXUserPresence::Present;
 	}
+
+	bDidBlink = false;
+
+	if (CheckForClosedEye && currentUserPresence == EEyeXUserPresence::Present)
+	{
+		FEyeXEyePosition currentEyePosition = mEyeX->GetEyePosition();
+
+		if (!simulateEyeX)
+		{
+			bIsLeftEyeClosed = !currentEyePosition.bIsLeftEyeValid;
+			bIsRightEyeClosed = !currentEyePosition.bIsRightEyeValid;
+		}
+
+		if (bMarkedForReset)
+			mBlinkErrorTimer += deltaSeconds;
+
+		// both eyes are open
+		if (!(bIsLeftEyeClosed || bIsRightEyeClosed))
+		{
+			/** Wink **/
+			// check for left eye wink
+			if (mLastClosedEye == EEyeToDetect::EYE_LEFT)
+			{
+				if (mLeftEyeClosedDuration >= MinWinkDuration && mLeftEyeClosedDuration <= MaxWinkDuration)
+				{
+					if (LeftEyeClosed.IsBound())
+						LeftEyeClosed.Broadcast();
+					mLeftEyeClosedDuration = 0;		// should ideally be mEyeClosedDuration = mEyeClosedDuration % MinEyeClosedDuration; but modulus for floats is not supported
+					mLastTriggeredEyeEvent = EEyeToDetect::EYE_LEFT;
+					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink"));
+				}
+				else
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Left eye wink duration = %f"), mLeftEyeClosedDuration);
+				}
+			}
+			// check for right eye wink
+			if (mLastClosedEye == EEyeToDetect::EYE_RIGHT)
+			{
+				if (mRightEyeClosedDuration >= MinWinkDuration && mRightEyeClosedDuration <= MaxWinkDuration)
+				{
+					if (RightEyeClosed.IsBound())
+						RightEyeClosed.Broadcast();
+					mRightEyeClosedDuration = 0;
+					mLastTriggeredEyeEvent = EEyeToDetect::EYE_RIGHT;
+					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink"));
+				}
+				else
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Right eye wink duration = %f"), mRightEyeClosedDuration);
+				}
+			}
+
+			/** Both open **/
+			if (mLastClosedEye != EEyeToDetect::EYE_NONE && mLastTriggeredEyeEvent != EEyeToDetect::EYE_NONE)
+			{
+				if (BothEyeOpened.IsBound())
+					BothEyeOpened.Broadcast();
+				//UE_LOG(LogTemp, Warning, TEXT("Both eyes are open"));
+			}
+
+			mLastClosedEye = EEyeToDetect::EYE_NONE;
+			mLeftEyeClosedDuration = 0;
+			mRightEyeClosedDuration = 0;
+			mLastTriggeredEyeEvent = EEyeToDetect::EYE_NONE;
+
+			/** Blink **/
+			if (bBlinkPossible)
+			{
+				if (!bMarkedForReset || mBlinkErrorTimer <= BlinkErrorRange)
+				{
+					//mBlinkTimer += deltaSeconds; // debatable
+					if (mBlinkTimer >= MinBlinkDuration && mBlinkTimer <= MaxBlinkDuration)
+					{
+						//UE_LOG(LogTemp, Warning, TEXT("UserBlinked"));
+						bDidBlink = true;
+						mBlinkCount++;
+						if (UserBlinked.IsBound())
+							UserBlinked.Broadcast();
+					}
+				}
+				ResetBlinkDetection();
+			}
+		}
+		// left eye is closed, right eye is open
+		else if (bIsLeftEyeClosed && !bIsRightEyeClosed)
+		{
+			mLeftEyeClosedDuration += deltaSeconds;
+			mRightEyeClosedDuration = 0;
+			mLastClosedEye = EEyeToDetect::EYE_LEFT;
+
+			if (bBlinkPossible)
+			{
+				bMarkedForReset = true;
+			}
+		}
+		// left eye is open, right eye is closed
+		else if (!bIsLeftEyeClosed && bIsRightEyeClosed)
+		{
+			mLeftEyeClosedDuration = 0;
+			mRightEyeClosedDuration += deltaSeconds;
+			mLastClosedEye = EEyeToDetect::EYE_RIGHT;
+
+			if (bBlinkPossible)
+			{
+				bMarkedForReset = true;
+			}
+		}
+		// both eyes are closed
+		else
+		{
+			if (mLastClosedEye == EEyeToDetect::EYE_LEFT)
+				mLeftEyeClosedDuration += deltaSeconds;
+			else if (mLastClosedEye == EEyeToDetect::EYE_RIGHT)
+				mRightEyeClosedDuration += deltaSeconds;
+
+			bBlinkPossible = true;
+			mBlinkTimer += deltaSeconds;
+		}
+	}
+}
+
+bool AChannelerEyeXPlayerController::IsLeftEyeClosed() const
+{
+	return bIsLeftEyeClosed;
+}
+
+bool AChannelerEyeXPlayerController::IsRightEyeClosed() const
+{
+	return bIsRightEyeClosed;
+}
+
+bool AChannelerEyeXPlayerController::DidUserBlink() const
+{
+	return bDidBlink;
+}
+
+int32 AChannelerEyeXPlayerController::BlinkCount() const
+{
+	return mBlinkCount;
+}
+
+void AChannelerEyeXPlayerController::ResetBlinkDetection()
+{
+	bBlinkPossible = false;
+	mBlinkTimer = 0;
+
+	mBlinkCount = 0;
+
+	bMarkedForReset = false;
+	mBlinkErrorTimer = 0;
+}
+
+void AChannelerEyeXPlayerController::SimulateLeftEyeClosed()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SimulateLeftEyeClosed()"));
+	if (IsEyeXSimulating())
+		bIsLeftEyeClosed = true;
+}
+
+void AChannelerEyeXPlayerController::SimulateRightEyeClosed()
+{
+	if (IsEyeXSimulating())
+		bIsRightEyeClosed = true;
+}
+
+void AChannelerEyeXPlayerController::SimulateLeftEyeOpen()
+{
+	if (IsEyeXSimulating())
+		bIsLeftEyeClosed = false;
+}
+
+void AChannelerEyeXPlayerController::SimulateRightEyeOpen()
+{
+	if (IsEyeXSimulating())
+		bIsRightEyeClosed = false;
+}
+
+bool AChannelerEyeXPlayerController::IsEyeXSimulating() const
+{
+	return (mGameMode != nullptr) ? mGameMode->IsEyeXSimulating() : false;
+}
+
+void AChannelerEyeXPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	/* Simulation */
+	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Pressed, this, &AChannelerEyeXPlayerController::SimulateLeftEyeClosed);
+	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Pressed, this, &AChannelerEyeXPlayerController::SimulateRightEyeClosed);
+
+	InputComponent->BindAction("Simulate_LeftEyeClosed", IE_Released, this, &AChannelerEyeXPlayerController::SimulateLeftEyeOpen);
+	InputComponent->BindAction("Simulate_RightEyeClosed", IE_Released, this, &AChannelerEyeXPlayerController::SimulateRightEyeOpen);
 }
 
 UChannelerCheatManager& AChannelerEyeXPlayerController::CheatManager()
@@ -108,65 +375,14 @@ void AChannelerEyeXPlayerController::JumpToStoryNode(FString nodeName)
 		mStoryManager->SetCurrentNode(nodeToJump, true);
 }
 
-EInputDevices AChannelerEyeXPlayerController::GetLastKnownInputDevice() const
+void AChannelerEyeXPlayerController::PrintScreenResolution()
 {
-	return mLastKnownInputDevice;
+	UGameUserSettings* gameSettings = GEngine->GetGameUserSettings();
+	if (gameSettings != nullptr)
+	{
+		FIntPoint currentScreenRes = gameSettings->GetScreenResolution();
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, FString::Printf(TEXT("%d x %d"), currentScreenRes.X, currentScreenRes.Y));
+		UE_LOG(LogTemp, Warning, TEXT("%d x %d"), currentScreenRes.X, currentScreenRes.Y);
+	}
 }
 
-EInputDevices AChannelerEyeXPlayerController::GetPreviousFramesLastKnownInputDevice() const
-{
-	return mPreviousFramesLastKnownInputDevice;
-}
-
-bool AChannelerEyeXPlayerController::WasKMBInputJustDetected() const
-{
-	return
-		WasInputKeyJustPressed(EKeys::MouseX) ||
-		WasInputKeyJustPressed(EKeys::MouseY) ||
-		WasInputKeyJustPressed(EKeys::LeftMouseButton) ||
-		WasInputKeyJustPressed(EKeys::RightMouseButton) ||
-		WasInputKeyJustPressed(EKeys::W) ||
-		WasInputKeyJustPressed(EKeys::A) ||
-		WasInputKeyJustPressed(EKeys::A) ||
-		WasInputKeyJustPressed(EKeys::D) ||
-		WasInputKeyJustPressed(EKeys::P) ||
-		WasInputKeyJustPressed(EKeys::Tab) ||
-		WasInputKeyJustPressed(EKeys::Enter) ||
-		WasInputKeyJustPressed(EKeys::Escape) ||
-		WasInputKeyJustPressed(EKeys::SpaceBar);
-}
-
-bool AChannelerEyeXPlayerController::WasGamepadInputJustDetected() const
-{
-	return
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftX) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftY) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightX) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightY) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftTriggerAxis) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightTriggerAxis) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftThumbstick) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightThumbstick) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_Special_Left) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_Special_Right) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_FaceButton_Bottom) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_FaceButton_Right) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_FaceButton_Left) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_FaceButton_Top) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftShoulder) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightShoulder) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftTrigger) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightTrigger) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_DPad_Up) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_DPad_Down) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_DPad_Right) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_DPad_Left) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftStick_Up) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftStick_Down) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftStick_Right) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_LeftStick_Left) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightStick_Up) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightStick_Down) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightStick_Right) ||
-		WasInputKeyJustPressed(EKeys::Gamepad_RightStick_Left);
-}

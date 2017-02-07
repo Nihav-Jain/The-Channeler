@@ -105,7 +105,7 @@ void AEyeXPlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	if (!(EyeX->GetEmulationMode() == EEyeXEmulationMode::Enabled && EyeX->GetEmulationPointType() == EEyeXEmulationPoint::ScreenCenter))
+	if (EyeX->GetEmulationMode() != EEyeXEmulationMode::Enabled)
 	{
 		if (MinUpdateDistance > 0 &&
 			LastUsedGazePoint.bHasValue &&

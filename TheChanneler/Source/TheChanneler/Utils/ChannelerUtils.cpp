@@ -4,11 +4,14 @@
 #include "../Characters/ChannelerCharacter.h"
 #include "../Kernel/ChannelerEyeXPlayerController.h"
 #include "ChannelerUtils.h"
+#include "../Input/InputDeviceManager.h"
+#include "../Kernel/ChannelerPlayerController.h"
 
 UGameInstanceBase* UChannelerUtils::GameInstanceBase;
 UStoryManager* UChannelerUtils::StoryManager;
 AChannelerCharacter* UChannelerUtils::ChannelerCharacter;
 AChannelerEyeXPlayerController* UChannelerUtils::ChannelerPlayerController;
+UInputDeviceManager* UChannelerUtils::InputDeviceManager;
 
 UChannelerUtils::~UChannelerUtils()
 {
@@ -16,6 +19,7 @@ UChannelerUtils::~UChannelerUtils()
 	StoryManager = nullptr;
 	ChannelerCharacter = nullptr;
 	ChannelerPlayerController = nullptr;
+	InputDeviceManager = nullptr;
 }
 
 UGameInstanceBase* UChannelerUtils::GetChannelerGameInstance()
@@ -65,3 +69,14 @@ void UChannelerUtils::SetChannelerPlayerController(AChannelerEyeXPlayerControlle
 {
 	ChannelerPlayerController = playerController;
 }
+
+UInputDeviceManager* UChannelerUtils::GetInputDeviceManager()
+{
+	return InputDeviceManager;
+}
+
+void UChannelerUtils::SetInputDeviceManager(UInputDeviceManager* inputDeviceManager)
+{
+	InputDeviceManager = inputDeviceManager;
+}
+

@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "TheChanneler.h"
-#include "Characters/ChannelerCharacter.h"
+#include "Kernel/ChannelerEyeXPlayerController.h"
 #include "BlinkWinkLogger.h"
 
 UBlinkWinkLogger::UBlinkWinkLogger() :
 	mLogFileName(""), mTotalDeltaTime(0), MaxBufferBytes(1024), mTotalBytes(0),
-	mCharacter(nullptr), mFileHandle(nullptr), mWorld(nullptr),
+	mController(nullptr), mFileHandle(nullptr), mWorld(nullptr),
 	mArchive(nullptr), mEyeStatusLogData(nullptr), mBlinkLogData(nullptr), mWinkLogData(nullptr), mBothOpenLogData(nullptr),
 	mBlinkDelegate(), mLeftEyeClosedDelegate(), mRightEyeClosedDelegate(), mBothEyesOpenDelegate(),
 	mCacheCheckForClosedEye(false), bIsLevelChange(false)
@@ -32,12 +32,12 @@ void UBlinkWinkLogger::Update(float DeltaSeconds)
 	*mEyeStatusLogData << mTotalDeltaTime;
 
 	uint8 eyeByte = 1;
-	if (mCharacter->IsLeftEyeClosed())
+	if (mController->IsLeftEyeClosed())
 		eyeByte = 0;
 	*mEyeStatusLogData << eyeByte;
 
 	eyeByte = 1;
-	if (mCharacter->IsRightEyeClosed())
+	if (mController->IsRightEyeClosed())
 		eyeByte = 0;
 	*mEyeStatusLogData << eyeByte;
 
@@ -82,16 +82,16 @@ void UBlinkWinkLogger::Activate()
 	check(mWorld != nullptr);
 	check(mWorld->GetFirstPlayerController() != nullptr);
 
-	mCharacter = Cast<AChannelerCharacter>(mWorld->GetFirstPlayerController()->GetPawn());
+	mController = Cast<AChannelerEyeXPlayerController>(mWorld->GetFirstPlayerController());
 
-	check(mCharacter != nullptr);
-	mCacheCheckForClosedEye = mCharacter->CheckForClosedEye;
-	mCharacter->CheckForClosedEye = true;
+	check(mController != nullptr);
+	mCacheCheckForClosedEye = mController->CheckForClosedEye;
+	mController->CheckForClosedEye = true;
 
-	mCharacter->UserBlinked.AddUnique(mBlinkDelegate);
-	mCharacter->LeftEyeClosed.AddUnique(mLeftEyeClosedDelegate);
-	mCharacter->RightEyeClosed.AddUnique(mRightEyeClosedDelegate);
-	mCharacter->BothEyeOpened.AddUnique(mBothEyesOpenDelegate);
+	mController->UserBlinked.AddUnique(mBlinkDelegate);
+	mController->LeftEyeClosed.AddUnique(mLeftEyeClosedDelegate);
+	mController->RightEyeClosed.AddUnique(mRightEyeClosedDelegate);
+	mController->BothEyeOpened.AddUnique(mBothEyesOpenDelegate);
 
 	MakeLogFileName();
 	CreateLogFileHeader();
@@ -122,14 +122,14 @@ void UBlinkWinkLogger::Deactivate()
 	delete mWinkLogData;
 	delete mBothOpenLogData;
 
-	if (!bIsLevelChange && mCharacter != nullptr)
+	if (!bIsLevelChange && mController != nullptr)
 	{
-		mCharacter->CheckForClosedEye = mCacheCheckForClosedEye;
+		mController->CheckForClosedEye = mCacheCheckForClosedEye;
 
-		mCharacter->UserBlinked.Remove(mBlinkDelegate);
-		mCharacter->LeftEyeClosed.Remove(mLeftEyeClosedDelegate);
-		mCharacter->RightEyeClosed.Remove(mRightEyeClosedDelegate);
-		mCharacter->BothEyeOpened.Remove(mBothEyesOpenDelegate);
+		mController->UserBlinked.Remove(mBlinkDelegate);
+		mController->LeftEyeClosed.Remove(mLeftEyeClosedDelegate);
+		mController->RightEyeClosed.Remove(mRightEyeClosedDelegate);
+		mController->BothEyeOpened.Remove(mBothEyesOpenDelegate);
 	}
 }
 
@@ -144,9 +144,9 @@ void UBlinkWinkLogger::CreateLogFileHeader()
 {
 	uint32 endianness = 1;
 	*mArchive << endianness;
-	*mArchive << mCharacter->MinEyeClosedDuration;
-	*mArchive << mCharacter->MinBlinkDuration;
-	*mArchive << mCharacter->MaxBlinkDuration;
+	*mArchive << mController->MinEyeClosedDuration;
+	*mArchive << mController->MinBlinkDuration;
+	*mArchive << mController->MaxBlinkDuration;
 }
 
 bool UBlinkWinkLogger::OpenFileHandle()
