@@ -9,26 +9,23 @@ ATheChannelerGameMode::ATheChannelerGameMode() :
 {}
 
 void ATheChannelerGameMode::BeginPlay()
-{
-	Super::BeginPlay();
-	
+{	
 	IEyeXPlugin& eyeX = IEyeXPlugin::Get();
 	EEyeXDeviceStatus::Type deviceStatus = eyeX.GetEyeTrackingDeviceStatus();
 
-	//switch (deviceStatus)
-	//{
-	//case EEyeXDeviceStatus::Disabled:		// intentional fall through
-	//case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
-	//case EEyeXDeviceStatus::Unknown:
-	//	UE_LOG(LogTemp, Warning, TEXT("Not Tracking"));
-	//	eyeX.SetEmulationMode(EEyeXEmulationMode::Enabled);
-	//	eyeX.SetEmulationPointType(EEyeXEmulationPoint::ScreenCenter);
-	//	break;
-	//case EEyeXDeviceStatus::Tracking:
-	//	UE_LOG(LogTemp, Warning, TEXT("Tracking"));
-	//	eyeX.SetEmulationMode(EEyeXEmulationMode::Disabled);
-	//	break;
-	//}
+	switch (deviceStatus)
+	{
+	case EEyeXDeviceStatus::Disabled:		// intentional fall through
+	case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
+	case EEyeXDeviceStatus::Unknown:
+		UE_LOG(LogTemp, Warning, TEXT("Not Tracking"));
+    bSimulateEyeX = true;
+		break;
+	case EEyeXDeviceStatus::Tracking:
+		UE_LOG(LogTemp, Warning, TEXT("Tracking"));
+    bSimulateEyeX = false;
+		break;
+	}
 
 	if (bSimulateEyeX)
 	{
@@ -42,6 +39,7 @@ void ATheChannelerGameMode::BeginPlay()
 
 	ChangeMenuWidget(StartingWidgetClass);
 	EyeXEx = nullptr;
+  Super::BeginPlay();
 }
 
 void ATheChannelerGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
