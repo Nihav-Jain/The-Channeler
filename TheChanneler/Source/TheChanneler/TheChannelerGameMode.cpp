@@ -15,13 +15,14 @@ void ATheChannelerGameMode::BeginPlay()
 
 	switch (deviceStatus)
 	{
-	case EEyeXDeviceStatus::Disabled:		// intentional fall through
-	case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
-	case EEyeXDeviceStatus::Unknown:
-		UE_LOG(LogTemp, Warning, TEXT("Not Tracking"));
+  case EEyeXDeviceStatus::Disabled:
+  case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
+		UE_LOG(LogTemp, Warning, TEXT("Not Tracking %d"), static_cast<int32>(deviceStatus));
     bSimulateEyeX = true;
 		break;
-	case EEyeXDeviceStatus::Tracking:
+  case EEyeXDeviceStatus::Unknown:		// intentional fall through
+  case EEyeXDeviceStatus::Pending:		// intentional fall through
+  case EEyeXDeviceStatus::Tracking:
 		UE_LOG(LogTemp, Warning, TEXT("Tracking"));
     bSimulateEyeX = false;
 		break;
