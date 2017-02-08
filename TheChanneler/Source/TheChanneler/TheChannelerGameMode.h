@@ -25,6 +25,7 @@ public:
 	* BeginPlay - Called when the game starts.
 	*/
 	virtual void BeginPlay() override;
+	virtual void Tick(float duration) override;
 
 	UPROPERTY(BlueprintAssignable, Category="EyeXEx")
 	FAppRegainedFocus AppRegainedFocus;
