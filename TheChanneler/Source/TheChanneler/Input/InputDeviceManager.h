@@ -33,6 +33,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	EInputDevices GetPreviousFramesLastKnownInputDevice() const;
 
+	class APlayerController* Controller;
+
 private:
 	bool WasKMBInputJustDetected() const;
 	bool WasGamepadInputJustDetected() const;

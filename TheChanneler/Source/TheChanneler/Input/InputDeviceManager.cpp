@@ -4,7 +4,8 @@
 #include "InputDeviceManager.h"
 
 UInputDeviceManager::UInputDeviceManager() :
-	mLastKnownInputDevice(EInputDevices::ID_KBM), mPreviousFramesLastKnownInputDevice(mLastKnownInputDevice)
+	mLastKnownInputDevice(EInputDevices::ID_KBM), mPreviousFramesLastKnownInputDevice(mLastKnownInputDevice),
+	Controller(nullptr)
 {
 	mKBMKeys.Add(EKeys::MouseX);
 	mKBMKeys.Add(EKeys::MouseY);
@@ -78,34 +79,28 @@ EInputDevices UInputDeviceManager::GetPreviousFramesLastKnownInputDevice() const
 
 bool UInputDeviceManager::WasKMBInputJustDetected() const
 {
-	if (GEngine == nullptr || GEngine->GetWorld() == nullptr || GEngine->GetWorld()->GetFirstPlayerController() == nullptr)
-		return false;
-
-	APlayerController* controller = GEngine->GetWorld()->GetFirstPlayerController();
-	if (controller != nullptr)
+	if (Controller != nullptr)
 	{
 		for (FKey key : mKBMKeys)
 		{
-			if (controller->WasInputKeyJustPressed(key))
+			if (Controller->WasInputKeyJustPressed(key))
 				return true;
 		}
 	}
+
 	return false;
 }
 
 bool UInputDeviceManager::WasGamepadInputJustDetected() const
 {
-	if (GEngine == nullptr || GEngine->GetWorld() == nullptr || GEngine->GetWorld()->GetFirstPlayerController() == nullptr)
-		return false;
-
-	APlayerController* controller = GetWorld()->GetFirstPlayerController();
-	if (controller != nullptr)
+	if (Controller != nullptr)
 	{
 		for (FKey key : mControllerKeys)
 		{
-			if (controller->WasInputKeyJustPressed(key))
+			if (Controller->WasInputKeyJustPressed(key))
 				return true;
 		}
 	}
+
 	return false;
 }

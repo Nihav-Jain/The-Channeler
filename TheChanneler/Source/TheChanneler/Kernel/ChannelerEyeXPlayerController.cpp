@@ -28,6 +28,7 @@ AChannelerEyeXPlayerController::AChannelerEyeXPlayerController()
 
 	UChannelerUtils::SetChannelerPlayerController(this);
 	InputDeviceManager = NewObject<UInputDeviceManager>(this, UInputDeviceManager::StaticClass(), TEXT("InputDeviceManager"));
+	InputDeviceManager->Controller = this;
 	UChannelerUtils::SetInputDeviceManager(InputDeviceManager);
 }
 

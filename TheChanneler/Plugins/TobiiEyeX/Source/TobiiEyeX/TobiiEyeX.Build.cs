@@ -59,6 +59,7 @@ namespace UnrealBuildTool.Rules
 					// ... add any modules that your module loads dynamically here ...
 				}
                 );
+			RuntimeDependencies.Add((new RuntimeDependency(Path.Combine(ModulePath, "../../ThirdParty/EyeX/lib/x64/Tobii.EyeX.Client.dll"))));
         }
     }
 }
