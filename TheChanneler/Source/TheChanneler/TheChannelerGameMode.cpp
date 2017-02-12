@@ -11,6 +11,8 @@ ATheChannelerGameMode::ATheChannelerGameMode() :
 void ATheChannelerGameMode::BeginPlay()
 {	
 	IEyeXPlugin& eyeX = IEyeXPlugin::Get();
+
+	/* Uncomment for auto-emulation
 	EEyeXDeviceStatus::Type deviceStatus = eyeX.GetEyeTrackingDeviceStatus();
 
 	switch (deviceStatus)
@@ -27,6 +29,7 @@ void ATheChannelerGameMode::BeginPlay()
 		bSimulateEyeX = false;
 		break;
 	}
+	*/
 
 	if (bSimulateEyeX)
 	{
@@ -43,6 +46,7 @@ void ATheChannelerGameMode::BeginPlay()
 	Super::BeginPlay();
 }
 
+/* Uncomment for auto-emulation
 void ATheChannelerGameMode::Tick(float duration)
 {
 	Super::Tick(duration);
@@ -65,6 +69,7 @@ void ATheChannelerGameMode::Tick(float duration)
 		}
 	}
 }
+*/
 
 void ATheChannelerGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 {
