@@ -61,7 +61,7 @@ public:
 	UPROPERTY(EditInstanceOnly, Category = "DialogueFreezeCam")
 	bool GoDirectlyToPuzzleCam;
 
-	UPROPERTY(EditInstanceOnly, Category = "DialogueFreezeCam")
+  UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "DialogueFreezeCam")
 	bool ExitDirectlyToPlayer;
 
 	UPROPERTY(EditInstanceOnly, Category = "DialogueFreezeCam")
