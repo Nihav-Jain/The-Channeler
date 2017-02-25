@@ -90,10 +90,10 @@ protected:
 	 */
 	void PausePuzzle_Implementation();
 
+  /** FreezeCam which enables this Puzzle */
+  UPROPERTY(BlueprintReadOnly, Category = "Puzzle")
+  class APuzzleCam* FreezeCam;
+
 private:
-
-	/** FreezeCam which enables this Puzzle */
-	class APuzzleCam* mFreezeCam;
-
 	FString PuzzleName;
 };

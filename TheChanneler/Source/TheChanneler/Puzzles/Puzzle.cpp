@@ -24,7 +24,7 @@ void APuzzle::Tick( float DeltaTime )
 
 void APuzzle::SetFreezeCam(APuzzleCam& freezeCam)
 {
-	mFreezeCam = &freezeCam;
+	FreezeCam = &freezeCam;
 }
 
 void APuzzle::EndPuzzle()
@@ -44,8 +44,8 @@ void APuzzle::EndPuzzle()
 		ChannelerHud->TurnOffGaze();
 	}
 
-	if(mFreezeCam != nullptr)
-		mFreezeCam->TransferControlToPlayer();
+	if(FreezeCam != nullptr)
+		FreezeCam->TransferControlToPlayer();
 }
 
 void APuzzle::StartPuzzle_Implementation()
@@ -60,14 +60,14 @@ void APuzzle::PausePuzzle_Implementation()
 
 void APuzzle::DisableMyFreezeCam()
 {
-	if(mFreezeCam != nullptr)
-		mFreezeCam->DisableFreezeCam();
+	if(FreezeCam != nullptr)
+		FreezeCam->DisableFreezeCam();
 }
 
 void APuzzle::EnableMyFreezeCam()
 {
-	if (mFreezeCam != nullptr)
-		mFreezeCam->EnableFreezeCam();
+	if (FreezeCam != nullptr)
+		FreezeCam->EnableFreezeCam();
 }
 
 const FString& APuzzle::GetPuzzleName() const
