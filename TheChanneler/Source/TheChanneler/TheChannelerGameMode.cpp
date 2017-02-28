@@ -43,28 +43,28 @@ void ATheChannelerGameMode::BeginPlay()
 	Super::BeginPlay();
 }
 
-void ATheChannelerGameMode::Tick(float duration)
-{
-	Super::Tick(duration);
-
-	if (bSimulateEyeX)
-	{
-		IEyeXPlugin& eyeX = IEyeXPlugin::Get();
-		EEyeXDeviceStatus::Type deviceStatus = eyeX.GetEyeTrackingDeviceStatus();
-		switch (deviceStatus)
-		{
-		case EEyeXDeviceStatus::Unknown:		// intentional fall through
-		case EEyeXDeviceStatus::Disabled:
-		case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
-			bSimulateEyeX = true;
-			break;
-		case EEyeXDeviceStatus::Pending:		// intentional fall through
-		case EEyeXDeviceStatus::Tracking:
-			bSimulateEyeX = false;
-			break;
-		}
-	}
-}
+//void ATheChannelerGameMode::Tick(float duration)
+//{
+//	Super::Tick(duration);
+//
+//	if (bSimulateEyeX)
+//	{
+//		IEyeXPlugin& eyeX = IEyeXPlugin::Get();
+//		EEyeXDeviceStatus::Type deviceStatus = eyeX.GetEyeTrackingDeviceStatus();
+//		switch (deviceStatus)
+//		{
+//		case EEyeXDeviceStatus::Unknown:		// intentional fall through
+//		case EEyeXDeviceStatus::Disabled:
+//		case EEyeXDeviceStatus::NotAvailable:	// intentional fall through
+//			bSimulateEyeX = true;
+//			break;
+//		case EEyeXDeviceStatus::Pending:		// intentional fall through
+//		case EEyeXDeviceStatus::Tracking:
+//			bSimulateEyeX = false;
+//			break;
+//		}
+//	}
+//}
 
 void ATheChannelerGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 {
