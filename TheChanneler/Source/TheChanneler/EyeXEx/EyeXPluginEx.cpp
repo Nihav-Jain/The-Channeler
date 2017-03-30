@@ -314,6 +314,7 @@ void UEyeXPluginEx::LaunchCalibrationTool(std::function<void(int)> callback)
 {
 	if (bConnected) {
 		LaunchCalibrationToolCallback = new std::function<void(int)>(callback);
+		UE_LOG(LogEyeXEx, Warning, TEXT("Launching calibration tool."));
 		TX_RESULT result =  LaunchConfigurationTool(Context, TX_CONFIGURATIONTOOL_RECALIBRATE, NULL, NULL);
 		if (TX_RESULT_OK != result)
 		{
@@ -340,6 +341,7 @@ void UEyeXPluginEx::OnDeviceStatusChanged(TX_CONSTHANDLE asyncData)
 			else if (!bInConfiguration && statusResult == TX_EYETRACKINGDEVICESTATUS_CONFIGURING) {
 				bInConfiguration = true;
 			}
+			UE_LOG(LogEyeXEx, Warning, TEXT("TX_STATEPATH_EYETRACKINGSTATE result = %d"), (int32)statusResult);
 		}
 		else {
 			UE_LOG(LogEyeXEx, Error, TEXT("Could not GetAsyncDataContent. Error code: %d."), (int32)result);
@@ -351,11 +353,12 @@ void UEyeXPluginEx::OnDeviceStatusChanged(TX_CONSTHANDLE asyncData)
 
 		if (bInConfiguration && statusResult == TX_EYETRACKINGDEVICESTATUS_TRACKING) {
 			if (LaunchCalibrationToolCallback != nullptr) {
+				UE_LOG(LogEyeXEx, Warning, TEXT("LaunchCalibrationToolCallback is not null."));
 				auto ViewportClient = GEngine->GameViewport;
 				if (ViewportClient != nullptr &&
 					ViewportClient->GetWindow().Get() != nullptr) {
 					ViewportClient->GetWindow()->BringToFront();
-
+					UE_LOG(LogEyeXEx, Warning, TEXT("Trying to bring app to front."));
 					// Win32
 					INPUT inputStructure;
 					inputStructure.ki.wVk = VK_SPACE;
